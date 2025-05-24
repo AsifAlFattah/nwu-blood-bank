@@ -1,10 +1,11 @@
 // src/App.js
 import React from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom'; // BrowserRouter removed from here
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import ProtectedRoute from './components/ProtectedRoute'; // <--- IMPORT THIS
 
 import { useAuth } from './AuthContext';
 import { auth } from './firebase';
@@ -12,9 +13,10 @@ import { signOut } from 'firebase/auth';
 
 function App() {
   const { currentUser } = useAuth();
-  const navigate = useNavigate(); // This will now work correctly
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
+    // ... your logout logic ...
     try {
       await signOut(auth);
       console.log("User signed out successfully");
@@ -25,19 +27,19 @@ function App() {
   };
 
   return (
-    // No <Router> here anymore
     <div className="App min-h-screen bg-gray-100">
       <nav className="bg-red-600 p-4 text-white shadow-md">
+        {/* ... your existing navbar code ... it should already be dynamic ... */}
         <ul className="container mx-auto flex justify-between items-center">
-          <div className="flex space-x-4 items-center"> {/* Added items-center for better alignment */}
+          <div className="flex space-x-4 items-center">
             <li>
-              <Link to="/" className="hover:text-red-200 font-semibold text-lg">NWU Blood Bank</Link> {/* Made title a bit larger */}
+              <Link to="/" className="hover:text-red-200 font-semibold text-lg">NWU Blood Bank</Link>
             </li>
             <li>
               <Link to="/" className="hover:text-red-200">Home</Link>
             </li>
           </div>
-          <div className="flex space-x-4 items-center"> {/* Added items-center */}
+          <div className="flex space-x-4 items-center">
             {currentUser ? (
               <>
                 <li>
@@ -46,7 +48,7 @@ function App() {
                 <li>
                   <button
                     onClick={handleLogout}
-                    className="hover:text-red-200 bg-transparent border-none p-0 text-white" /* Ensured button text is white */
+                    className="hover:text-red-200 bg-transparent border-none p-0 text-white"
                   >
                     Logout ({currentUser.email.split('@')[0]})
                   </button>
@@ -71,11 +73,17 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute> {/* <--- WRAP DashboardPage like this */}
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </div>
     </div>
-    // No </Router> here anymore
   );
 }
 
