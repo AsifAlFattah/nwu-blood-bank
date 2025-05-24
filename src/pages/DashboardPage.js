@@ -64,18 +64,25 @@ function DashboardPage() {
 
       {isDonor ? (
         <div className="p-4 bg-green-50 border-l-4 border-green-500 rounded-md">
-          <h2 className="text-xl font-semibold text-green-700 mb-2">Thank You for Being a Donor!</h2>
-          {donorData && (
-            <div className="text-sm text-gray-600 space-y-1">
-              <p><strong>Name:</strong> {donorData.fullName}</p>
-              <p><strong>Blood Group:</strong> <span className="font-bold text-red-600">{donorData.bloodGroup}</span></p>
-              <p><strong>Contact:</strong> {donorData.contactNumber}</p>
-              <p><strong>Availability:</strong> {donorData.isAvailable ? "Available" : "Not Currently Available"}</p>
-              {donorData.lastDonationDate && <p><strong>Last Donated:</strong> {donorData.lastDonationDate}</p>}
-            </div>
-          )}
-          {/* TODO: Add a link to "Edit Donor Profile" page here later */}
+      <div className="flex justify-between items-center mb-2">
+        <h2 className="text-xl font-semibold text-green-700">Thank You for Being a Donor!</h2>
+        <Link 
+          to="/edit-donor-profile" 
+          className="text-sm bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-lg shadow hover:shadow-md transition duration-150 ease-in-out"
+        >
+          Edit Profile
+        </Link>
+      </div>
+      {donorData && (
+        <div className="text-sm text-gray-600 space-y-1">
+          <p><strong>Name:</strong> {donorData.fullName}</p>
+          <p><strong>Blood Group:</strong> <span className="font-bold text-red-600">{donorData.bloodGroup}</span></p>
+          <p><strong>Contact:</strong> {donorData.contactNumber}</p>
+          <p><strong>Availability:</strong> {donorData.isAvailable ? "Available" : "Not Currently Available"}</p>
+          {donorData.lastDonationDate && <p><strong>Last Donated:</strong> {donorData.lastDonationDate}</p>}
         </div>
+      )}
+    </div>
       ) : (
         <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-md">
           <p className="mb-3 text-gray-700">You are not yet registered as a blood donor.</p>

@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import RegisterDonorPage from './pages/RegisterDonorPage';
+import EditDonorProfilePage from './pages/EditDonorProfilePage';
 
 import { useAuth } from './AuthContext';
 import { auth } from './firebase';
@@ -79,8 +80,12 @@ function App() {
             element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}
           />
           <Route
-            path="/register-donor" // <--- NEW ROUTE
+            path="/register-donor"
             element={<ProtectedRoute><RegisterDonorPage /></ProtectedRoute>}
+          />
+          <Route
+            path="/edit-donor-profile"
+            element={<ProtectedRoute><EditDonorProfilePage /></ProtectedRoute>}
           />
         </Routes>
       </div>
