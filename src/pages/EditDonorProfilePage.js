@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { db } from '../firebase';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import LoadingSpinner from '../components/LoadingSpinner'; // <--- IMPORT LoadingSpinner
 
 function EditDonorProfilePage() {
   const { currentUser } = useAuth();
@@ -15,7 +16,7 @@ function EditDonorProfilePage() {
     contactNumber: '',
     isAvailable: true,
     lastDonationDate: '',
-    allowContactVisibility: false, // <--- ADD to initial state
+    allowContactVisibility: false,
   });
   const [donorDocId, setDonorDocId] = useState(null);
   const [loading, setLoading] = useState(true); // For initial data load
@@ -44,21 +45,25 @@ function EditDonorProfilePage() {
               contactNumber: data.contactNumber || '',
               isAvailable: data.isAvailable !== undefined ? data.isAvailable : true,
               lastDonationDate: data.lastDonationDate || '',
-              allowContactVisibility: data.allowContactVisibility !== undefined ? data.allowContactVisibility : false, // <--- FETCH & SET
+              allowContactVisibility: data.allowContactVisibility !== undefined ? data.allowContactVisibility : false,
             });
           } else {
             setError("No donor profile found to edit. Please register as a donor first.");
           }
         } catch (err) {
           console.error("Error fetching donor data:", err);
-          setError("Failed to fetch donor data.");
+          setError("Failed to fetch donor data. (Ensure Firestore indexes are created if prompted in console)");
         } finally {
           setLoading(false);
         }
+      } else {
+        // No current user, set loading to false and perhaps show an error or redirect
+        setLoading(false);
+        setError("You must be logged in to edit a donor profile.");
       }
     };
     fetchDonorData();
-  }, [currentUser]); // Removed navigate from dependencies as it's stable
+  }, [currentUser]); 
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -72,7 +77,7 @@ function EditDonorProfilePage() {
     e.preventDefault();
     setFormError(null);
     setSuccessMessage('');
-    setUpdating(true); // Use 'updating' for submission loading state
+    setUpdating(true);
 
     if (!donorDocId) {
       setFormError("Donor profile not found. Cannot update.");
@@ -94,14 +99,12 @@ function EditDonorProfilePage() {
         contactNumber: formData.contactNumber,
         isAvailable: formData.isAvailable,
         lastDonationDate: formData.lastDonationDate,
-        allowContactVisibility: formData.allowContactVisibility, // <--- UPDATE THIS
+        allowContactVisibility: formData.allowContactVisibility,
       });
       setSuccessMessage("Profile updated successfully!");
       console.log("Donor profile updated!");
-      // Optionally update local formData state again if server transforms data, though not necessary here
       setTimeout(() => {
-        setSuccessMessage(''); // Clear success message
-        // navigate('/dashboard'); // Optionally navigate after success
+        setSuccessMessage('');
       }, 3000); 
     } catch (err) {
       console.error("Error updating donor profile:", err);
@@ -111,24 +114,40 @@ function EditDonorProfilePage() {
     }
   };
 
-  if (loading) { // Initial loading of donor data
-    return <p className="p-4 text-center">Loading donor profile...</p>;
+  // --- UPDATED INITIAL LOADING DISPLAY ---
+  if (loading) { 
+    return <LoadingSpinner message="Loading donor profile..." size="lg" />;
   }
 
-  if (error) { // Error fetching initial data
-    return <p className="p-4 text-center text-red-600">{error}</p>;
+  if (error) { 
+    return (
+        <div className="p-4 text-center">
+            <p className="text-red-600">{error}</p>
+            {/* Optionally, add a button to go back or to register if appropriate */}
+            {error.includes("No donor profile found") && (
+                 <button onClick={() => navigate('/register-donor')} className="mt-4 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded">
+                    Register as Donor
+                </button>
+            )}
+             <button onClick={() => navigate('/dashboard')} className="mt-4 ml-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">
+                Back to Dashboard
+            </button>
+        </div>
+    );
   }
-
-  if (!donorDocId && !loading) { // No donor profile found after loading attempt
+  
+  // This case might not be hit if error above catches it, but good for explicit no profile
+  if (!donorDocId && !loading && !error) { 
      return (
         <div className="p-4 text-center">
-            <p className="text-red-600">No donor profile found to edit.</p>
+            <p className="text-gray-700">No donor profile available to edit.</p>
             <button onClick={() => navigate('/register-donor')} className="mt-4 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded">
                 Register as Donor
             </button>
         </div>
     );
   }
+
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen-nav bg-gray-100 p-4 pt-10">
@@ -139,8 +158,6 @@ function EditDonorProfilePage() {
         {formError && <p className="p-3 my-2 text-sm text-red-700 bg-red-100 rounded-md text-center">{formError}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* ... Full Name, Blood Group, Contact Number, Last Donation Date fields ... */}
-          {/* (These fields remain as they were) */}
           <div>
             <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Full Name</label>
             <input type="text" name="fullName" id="fullName" required value={formData.fullName} onChange={handleChange}
@@ -174,7 +191,6 @@ function EditDonorProfilePage() {
             <label htmlFor="isAvailable" className="ml-2 block text-sm text-gray-900">Currently available to donate</label>
           </div>
 
-          {/* --- CHECKBOX FOR CONTACT VISIBILITY --- */}
           <div className="flex items-start">
             <div className="flex items-center h-5">
                 <input 
@@ -190,7 +206,6 @@ function EditDonorProfilePage() {
                 <p className="text-xs text-gray-500">Check this if you consent to your contact number being shown to logged-in users searching for donors.</p>
             </div>
           </div>
-          {/* --- END OF CHECKBOX --- */}
 
           <div>
             <button type="submit" disabled={updating}

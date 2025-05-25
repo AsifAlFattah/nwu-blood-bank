@@ -4,6 +4,7 @@ import { db } from '../firebase';
 import { collection, query, where, orderBy, getDocs, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 function ViewRequestsPage() {
   const { currentUser } = useAuth();
@@ -93,7 +94,7 @@ function ViewRequestsPage() {
   };
 
   if (loading) {
-    return <p className="p-4 text-center text-gray-600">Loading active blood requests...</p>;
+    return <LoadingSpinner message="Loading active blood requests..." size="lg" />;
   }
 
   // If there's an initial fetch error and no requests loaded, show only that error.

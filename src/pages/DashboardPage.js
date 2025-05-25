@@ -1,30 +1,28 @@
 // src/pages/DashboardPage.js
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // useNavigate is imported but not used, can be removed if not needed
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { db } from '../firebase';
 import { collection, query, where, getDocs, orderBy, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import LoadingSpinner from '../components/LoadingSpinner'; // <--- IMPORT LoadingSpinner
 
 function DashboardPage() {
   const { currentUser } = useAuth();
-  const navigate = useNavigate(); // Keep if you plan to add navigation from here, e.g. after an action
+  const navigate = useNavigate(); 
 
-  // States for Donor Profile section
   const [isDonor, setIsDonor] = useState(false);
   const [donorData, setDonorData] = useState(null);
   const [loadingDonorStatus, setLoadingDonorStatus] = useState(true);
 
-  // States for "My Posted Blood Requests" section
   const [myRequests, setMyRequests] = useState([]);
   const [loadingMyRequests, setLoadingMyRequests] = useState(true);
-  const [errorMyRequests, setErrorMyRequests] = useState(null); // For errors fetching requests
-  const [actionError, setActionError] = useState(null); // <--- NEW: For errors from update/delete actions on this page
+  const [errorMyRequests, setErrorMyRequests] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
   const fetchUserSpecificData = async () => {
     if (!currentUser) {
       setLoadingDonorStatus(false);
       setLoadingMyRequests(false);
-      // Clear data if no user
       setIsDonor(false);
       setDonorData(null);
       setMyRequests([]);
@@ -33,7 +31,7 @@ function DashboardPage() {
       return;
     }
 
-    setActionError(null); // Clear previous action errors on new fetch
+    setActionError(null);
 
     // Fetch Donor Status
     setLoadingDonorStatus(true);
@@ -49,14 +47,13 @@ function DashboardPage() {
       }
     } catch (error) {
       console.error("Error checking donor status:", error);
-      // setErrorMyRequests or a new error state for donor status could be set here
     } finally {
       setLoadingDonorStatus(false);
     }
 
     // Fetch User's Blood Requests
     setLoadingMyRequests(true);
-    setErrorMyRequests(null); // Clear fetch error for requests
+    setErrorMyRequests(null);
     const requestsQuery = query(
       collection(db, "bloodRequests"),
       where("userId", "==", currentUser.uid),
@@ -83,22 +80,22 @@ function DashboardPage() {
 
 
   const handleUpdateRequestStatus = async (requestId, newStatus) => {
-    setActionError(null); // Clear previous action error
+    setActionError(null);
     if (!window.confirm(`Are you sure you want to mark this request as ${newStatus}?`)) {
       return;
     }
     try {
       const requestDocRef = doc(db, "bloodRequests", requestId);
       await updateDoc(requestDocRef, { status: newStatus });
-      fetchUserSpecificData(); // Refresh data
+      fetchUserSpecificData();
     } catch (err) {
       console.error(`Error updating request status for ${requestId}: `, err);
-      setActionError(`Failed to update request status. Please try again.`); // Set on-page error
+      setActionError(`Failed to update request status. Please try again.`);
     }
   };
 
   const handleDeleteRequest = async (requestId) => {
-    setActionError(null); // Clear previous action error
+    setActionError(null);
     if (!window.confirm("Are you sure you want to permanently delete this blood request? This action cannot be undone.")) {
       return;
     }
@@ -106,10 +103,10 @@ function DashboardPage() {
       const requestDocRef = doc(db, "bloodRequests", requestId);
       await deleteDoc(requestDocRef);
       console.log(`Request ${requestId} deleted successfully from dashboard.`);
-      fetchUserSpecificData(); // Re-fetch user data to update the list
+      fetchUserSpecificData();
     } catch (err) {
       console.error(`Error deleting request ${requestId} from dashboard: `, err);
-      setActionError(`Failed to delete blood request. Please try again.`); // Set on-page error
+      setActionError(`Failed to delete blood request. Please try again.`);
     }
   };
 
@@ -129,7 +126,7 @@ function DashboardPage() {
         'moderate': 'Moderate',
         'low': 'Low'
     };
-    return urgencyMap[urgencyValue] || urgencyValue.charAt(0).toUpperCase() + urgencyValue.slice(1);
+    return urgencyMap[urgencyValue] || (urgencyValue ? urgencyValue.charAt(0).toUpperCase() + urgencyValue.slice(1) : 'N/A');
   };
 
   const getStatusClass = (status) => {
@@ -141,18 +138,17 @@ function DashboardPage() {
     }
   };
 
-  // Combined loading state for initial display
-  if (loadingDonorStatus && loadingMyRequests && !currentUser) { 
-    return <p className="p-4 text-center">Loading user data...</p>;
+  // Initial loading logic
+  if (!currentUser && (loadingDonorStatus || loadingMyRequests)) { 
+    return <LoadingSpinner message="Loading user data..." size="lg" />;
   }
   if (!currentUser && !loadingDonorStatus && !loadingMyRequests) { 
     return <p className="p-4 text-center">Please log in to view your dashboard.</p>;
   }
-  // If currentUser is loaded, but other data is still loading for the first time
-  if (currentUser && (loadingDonorStatus || loadingMyRequests) && (donorData === null && myRequests.length === 0) ) {
-     return <p className="p-4 text-center">Loading dashboard data...</p>;
+  // If currentUser is loaded, but data for both sections is still loading for the first time
+  if (currentUser && (loadingDonorStatus && donorData === null) && (loadingMyRequests && myRequests.length === 0)) {
+     return <LoadingSpinner message="Loading dashboard data..." size="lg" />;
   }
-
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-8">
@@ -160,7 +156,7 @@ function DashboardPage() {
       <section className="p-6 bg-white rounded-lg shadow-lg">
         <h2 className="text-2xl font-semibold text-red-700 mb-4">My Donor Profile</h2>
         {loadingDonorStatus ? (
-          <p>Loading donor status...</p>
+          <LoadingSpinner message="Loading donor profile..." /> // <--- UPDATED
         ) : isDonor && donorData ? (
           <div className="p-4 bg-green-50 border-l-4 border-green-500 rounded-md space-y-2">
             <div className="flex justify-between items-center">
@@ -201,7 +197,6 @@ function DashboardPage() {
             </Link>
         </div>
 
-        {/* Display action error messages for this section */}
         {actionError && (
           <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-md text-center">
             {actionError}
@@ -215,8 +210,8 @@ function DashboardPage() {
         )}
 
         {loadingMyRequests ? (
-          <p>Loading your requests...</p>
-        ) : errorMyRequests ? ( // This is for fetch errors
+          <LoadingSpinner message="Loading your requests..." /> // <--- UPDATED
+        ) : errorMyRequests ? (
           <p className="text-red-500 text-center">{errorMyRequests}</p>
         ) : myRequests.length === 0 ? (
           <p className="text-gray-600 text-center">You have not posted any blood requests yet.</p>
