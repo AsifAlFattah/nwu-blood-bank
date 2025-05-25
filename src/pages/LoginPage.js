@@ -1,6 +1,8 @@
+// src/pages/LoginPage.js
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // Added Link
-import { auth } from '../firebase'; // Import auth from your firebase.js
+// Import useLocation
+import { useNavigate, Link, useLocation } from 'react-router-dom'; 
+import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from "firebase/auth";
 
 function LoginPage() {
@@ -9,6 +11,11 @@ function LoginPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation(); // Get location object
+
+  // Determine where to redirect after login
+  // If 'state.from' exists, it means user was redirected from a protected route
+  const from = location.state?.from?.pathname || "/dashboard";
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -18,16 +25,14 @@ function LoginPage() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("User logged in successfully:", userCredential.user);
-      // TODO: We'll implement global auth state management soon.
       setLoading(false);
-      navigate('/dashboard'); // Redirect to dashboard after successful login
+      navigate(from, { replace: true }); // Navigate to 'from' location or dashboard
     } catch (err) {
       console.error("Error logging in user:", err);
-      // Handle specific errors like 'auth/wrong-password' or 'auth/user-not-found'
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError("Invalid email or password. Please try again.");
       } else {
-        setError(err.message); // Display other Firebase error messages
+        setError(err.message);
       }
       setLoading(false);
     }
@@ -38,12 +43,13 @@ function LoginPage() {
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
         <h1 className="text-3xl font-bold text-center text-red-600">Sign In</h1>
         <form onSubmit={handleLogin} className="space-y-6">
+          {/* Email input */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               Email address
             </label>
             <input
-              id="email"
+              id="email" // ... (rest of the input props remain the same) ...
               name="email"
               type="email"
               autoComplete="email"
@@ -55,12 +61,13 @@ function LoginPage() {
             />
           </div>
 
+          {/* Password input */}
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Password
             </label>
             <input
-              id="password"
+              id="password" // ... (rest of the input props remain the same) ...
               name="password"
               type="password"
               autoComplete="current-password"
@@ -74,6 +81,7 @@ function LoginPage() {
 
           {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
+          {/* Submit button */}
           <div>
             <button
               type="submit"

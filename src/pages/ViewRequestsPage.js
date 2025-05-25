@@ -9,11 +9,13 @@ function ViewRequestsPage() {
   const { currentUser } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null); // For initial fetch errors
+  const [actionError, setActionError] = useState(null); // For errors from update/delete actions
 
   const fetchActiveRequests = async () => {
     setLoading(true);
-    setError(null);
+    setError(null); // Clear initial fetch error
+    setActionError(null); // Clear action error on refresh
     try {
       const requestsRef = collection(db, "bloodRequests");
       const q = query(
@@ -40,6 +42,7 @@ function ViewRequestsPage() {
   }, []);
 
   const handleUpdateRequestStatus = async (requestId, newStatus) => {
+    setActionError(null); // Clear previous action error before new action
     if (!window.confirm(`Are you sure you want to mark this request as ${newStatus}?`)) {
       return;
     }
@@ -49,11 +52,13 @@ function ViewRequestsPage() {
       fetchActiveRequests(); // Refresh list
     } catch (err) {
       console.error(`Error updating request status for ${requestId}: `, err);
-      alert(`Failed to update request status. Please try again.`);
+      // Replace alert with setActionError
+      setActionError(`Failed to update status for request. Please try again.`);
     }
   };
 
   const handleDeleteRequest = async (requestId) => {
+    setActionError(null); // Clear previous action error before new action
     if (!window.confirm("Are you sure you want to permanently delete this blood request? This action cannot be undone.")) {
       return;
     }
@@ -64,7 +69,8 @@ function ViewRequestsPage() {
       fetchActiveRequests(); // Refresh the list
     } catch (err) {
       console.error(`Error deleting request ${requestId}: `, err);
-      alert(`Failed to delete blood request. Please try again.`);
+      // Replace alert with setActionError
+      setActionError(`Failed to delete blood request. Please try again.`);
     }
   };
 
@@ -90,17 +96,38 @@ function ViewRequestsPage() {
     return <p className="p-4 text-center text-gray-600">Loading active blood requests...</p>;
   }
 
-  if (error) {
+  // If there's an initial fetch error and no requests loaded, show only that error.
+  if (error && requests.length === 0) {
     return <p className="p-4 text-center text-red-600">{error}</p>;
   }
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
-        {/* This is line 98 after correction: */}
-        <h1 className="text-3xl font-bold text-center text-red-600 mb-8">Active Blood Requests</h1>
-        {/* This is line 99: */}
-        {requests.length === 0 ? (
+        <h1 className="text-3xl font-bold text-center text-red-600 mb-6">Active Blood Requests</h1>
+
+        {/* Display action error messages here */}
+        {actionError && (
+          <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-md text-center">
+            {actionError}
+            <button 
+              onClick={() => setActionError(null)} 
+              className="ml-4 px-2 py-0.5 text-xs bg-red-200 hover:bg-red-300 rounded-md font-semibold"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+        
+        {/* Display initial fetch error here if list might partially render or has other content,
+            but only if no specific actionError is present */}
+        {error && !actionError && (
+             <p className="mb-4 p-3 text-sm text-yellow-700 bg-yellow-100 rounded-md text-center">
+                Note: There was an issue fetching all data: {error}
+             </p>
+        )}
+
+        {requests.length === 0 && !loading ? ( // Check !loading here as well
           <div className="text-center p-6 bg-white rounded-lg shadow-md">
             <p className="text-gray-600 mb-4">No active blood requests at the moment.</p>
             <Link 
