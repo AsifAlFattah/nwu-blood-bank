@@ -1,6 +1,5 @@
 // src/App.js
 import React from 'react';
-// We might not need Link and useNavigate here anymore if Navbar handles all nav actions
 import { Routes, Route } from 'react-router-dom'; 
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -12,23 +11,23 @@ import EditDonorProfilePage from './pages/EditDonorProfilePage';
 import FindDonorsPage from './pages/FindDonorsPage'; 
 import PostRequestPage from './pages/PostRequestPage';
 import ViewRequestsPage from './pages/ViewRequestsPage';
-import Navbar from './components/Navbar'; // <--- IMPORT your new Navbar component
+import Navbar from './components/Navbar'; 
+import Footer from './components/Footer'; // Import the Footer component
 
-// useAuth, auth, signOut, and useNavigate for logout are now handled within Navbar.js
-// So, we can remove them from App.js if they are not used for other purposes here.
+// Note: Authentication-related hooks (useAuth, useNavigate) and functions (signOut) 
+// are now primarily managed within components like Navbar.js, LoginPage.js, etc.
 
 function App() {
-  // currentUser and handleLogout are no longer needed directly in App.js
-  // as Navbar.js will use useAuth() and define its own handleLogout.
-
   return (
-    // Added pt-16 (padding-top: 4rem) to account for the sticky navbar's height (h-16 = 4rem)
-    // Adjust this value if your navbar height is different.
-    <div className="App min-h-screen bg-gray-100 pt-0"> 
-      <Navbar /> {/* <--- USE the new Navbar component here */}
+    // Main application container using flexbox to position footer correctly.
+    // min-h-screen ensures it takes at least the full viewport height.
+    // pt-0 means content will start at the very top, potentially under a sticky navbar.
+    // Individual pages might need internal padding if navbar overlap is not desired for their content.
+    <div className="App flex flex-col min-h-screen bg-gray-100 pt-0"> 
+      <Navbar /> 
       
-      {/* The main content area */}
-      <div className="container mx-auto p-4">
+      {/* Main content area that expands to fill available space */}
+      <main className="container mx-auto p-4 flex-grow">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -58,9 +57,11 @@ function App() {
             element={<ProtectedRoute><ViewRequestsPage /></ProtectedRoute>}
           />
         </Routes>
-      </div>
+      </main>
+      
+      <Footer /> {/* Footer component placed after the main content */}
     </div>
   );
 }
 
-export default App;
+export default App; 
