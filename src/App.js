@@ -10,6 +10,7 @@ import RegisterDonorPage from './pages/RegisterDonorPage';
 import EditDonorProfilePage from './pages/EditDonorProfilePage';
 import FindDonorsPage from './pages/FindDonorsPage'; 
 import PostRequestPage from './pages/PostRequestPage';
+import ViewRequestsPage from './pages/ViewRequestsPage';
 
 import { useAuth } from './AuthContext';
 import { auth } from './firebase';
@@ -49,6 +50,9 @@ function App() {
                 </li>
                 <li> {/* <--- ADD LINK TO POST REQUEST */}
                     <Link to="/post-request" className="hover:text-red-200">Post Request</Link>
+                </li>
+                <li> {/* <--- ADD LINK TO VIEW REQUESTS */}
+                    <Link to="/view-requests" className="hover:text-red-200">View Requests</Link>
                 </li>
               </>
             )}
@@ -108,6 +112,10 @@ function App() {
           <Route
             path="/post-request" 
             element={<ProtectedRoute><PostRequestPage /></ProtectedRoute>}
+          />
+          <Route
+            path="/view-requests" 
+            element={<ProtectedRoute><ViewRequestsPage /></ProtectedRoute>}
           />
         </Routes>
       </div>
