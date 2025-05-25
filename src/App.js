@@ -20,6 +20,7 @@ import AdminLayout from './pages/admin/AdminLayout'; // The new layout for the a
 import AdminOverviewPage from './pages/admin/AdminOverviewPage'; // New placeholder for admin overview
 import AdminDonorsPage from './pages/admin/AdminDonorsPage'; // Your existing page for listing donors
 import AdminRequestsPage from './pages/admin/AdminRequestsPage'; // New placeholder
+import AdminUsersPage from './pages/admin/AdminUsersPage'; // New placeholder for admin users management
 
 // This component will conditionally render layouts based on the path
 function AppContent() {
@@ -44,6 +45,7 @@ function AppContent() {
           <Route path="overview" element={<AdminOverviewPage />} />
           <Route path="donors" element={<AdminDonorsPage />} />
           <Route path="requests" element={<AdminRequestsPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
           {/* Add more admin sub-pages here later, e.g., path="users" */}
         </Route>
         {/* Fallback or redirect for non-matched admin paths if necessary, or a 404 component */}

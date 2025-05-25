@@ -10,7 +10,7 @@ function AdminLayout() {
     { name: 'Overview', to: '/admin/overview' /* icon: ChartBarIcon */ },
     { name: 'Manage Donors', to: '/admin/donors' /* icon: GiftIcon */ },
     { name: 'Manage Requests', to: '/admin/requests' /* icon: ClipboardListIcon */ },
-    // { name: 'Manage Users', to: '/admin/users', icon: UsersIcon }, // Example for later
+    { name: 'Manage Users', to: '/admin/users' }, // Placeholder for future user management
   ];
 
   return (
