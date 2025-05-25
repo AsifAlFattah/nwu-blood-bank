@@ -1,6 +1,6 @@
 // src/pages/DashboardPage.js
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
+import { Link } from 'react-router-dom'; // useNavigate removed as it was unused based on ESLint error
 import { useAuth } from '../AuthContext';
 import { db } from '../firebase';
 import { collection, query, where, getDocs, orderBy, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -8,7 +8,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 function DashboardPage() {
   const { currentUser } = useAuth();
-  const navigate = useNavigate(); // For potential navigation actions from the dashboard
+  // const navigate = useNavigate(); // Removed as per ESLint warning (add back if you use it)
 
   // State for the user's donor profile section
   const [isDonor, setIsDonor] = useState(false);
@@ -18,13 +18,13 @@ function DashboardPage() {
   // State for the "My Posted Blood Requests" section
   const [myRequests, setMyRequests] = useState([]);
   const [loadingMyRequests, setLoadingMyRequests] = useState(true);
-  const [errorMyRequests, setErrorMyRequests] = useState(null); // For errors when fetching user's requests
-  const [actionError, setActionError] = useState(null); // For errors from update/delete actions on this page
+  const [errorMyRequests, setErrorMyRequests] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
-  // Fetches both donor status and user's blood requests when the component mounts or currentUser changes
-  const fetchUserSpecificData = async () => {
+  // Fetches both donor status and user's blood requests
+  // Wrapped in useCallback to stabilize its reference for useEffect
+  const fetchUserSpecificData = useCallback(async () => {
     if (!currentUser) {
-      // Reset all states if no user is logged in
       setLoadingDonorStatus(false);
       setLoadingMyRequests(false);
       setIsDonor(false);
@@ -35,7 +35,7 @@ function DashboardPage() {
       return;
     }
 
-    setActionError(null); // Clear previous action errors on new data fetch
+    setActionError(null);
 
     // Fetch Donor Status
     setLoadingDonorStatus(true);
@@ -51,14 +51,13 @@ function DashboardPage() {
       }
     } catch (error) {
       console.error("Error checking donor status:", error);
-      // Consider setting a specific error state for donor status if needed
     } finally {
       setLoadingDonorStatus(false);
     }
 
-    // Fetch User's Blood Requests, ordered by most recent first
+    // Fetch User's Blood Requests
     setLoadingMyRequests(true);
-    setErrorMyRequests(null); // Clear previous fetch error for requests
+    setErrorMyRequests(null);
     const requestsQuery = query(
       collection(db, "bloodRequests"),
       where("userId", "==", currentUser.uid),
@@ -77,12 +76,13 @@ function DashboardPage() {
     } finally {
       setLoadingMyRequests(false);
     }
-  };
+  }, [currentUser]); // useCallback depends on currentUser
 
+  // Effect hook to fetch data when fetchUserSpecificData (or currentUser indirectly) changes
   useEffect(() => {
-    // Fetch data when currentUser is available or changes
     fetchUserSpecificData();
-  }, [currentUser]); // Re-fetch data if the current user changes
+  }, [fetchUserSpecificData]); // Correctly depends on the memoized fetchUserSpecificData
+
 
   // Handles updating the status of a blood request
   const handleUpdateRequestStatus = async (requestId, newStatus) => {
@@ -93,7 +93,7 @@ function DashboardPage() {
     try {
       const requestDocRef = doc(db, "bloodRequests", requestId);
       await updateDoc(requestDocRef, { status: newStatus });
-      fetchUserSpecificData(); // Refresh dashboard data
+      fetchUserSpecificData(); 
     } catch (err) {
       console.error(`Error updating request status for ${requestId}: `, err);
       setActionError(`Failed to update request status. Please try again.`);
@@ -110,14 +110,14 @@ function DashboardPage() {
       const requestDocRef = doc(db, "bloodRequests", requestId);
       await deleteDoc(requestDocRef);
       console.log(`Request ${requestId} deleted successfully from dashboard.`);
-      fetchUserSpecificData(); // Refresh dashboard data
+      fetchUserSpecificData(); 
     } catch (err) {
       console.error(`Error deleting request ${requestId} from dashboard: `, err);
       setActionError(`Failed to delete blood request. Please try again.`);
     }
   };
 
-  // Helper function to format Firestore Timestamps for display
+  // Helper function to format Firestore Timestamps
   const formatDate = (timestamp) => {
     if (timestamp instanceof Timestamp) {
       return timestamp.toDate().toLocaleDateString('en-US', {
@@ -127,7 +127,7 @@ function DashboardPage() {
     return 'N/A';
   };
 
-  // Helper function to get a displayable label for urgency levels
+  // Helper function to get displayable label for urgency
   const getUrgencyLabel = (urgencyValue) => { 
     const urgencyMap = {
         'urgent': 'Urgent',
@@ -137,7 +137,7 @@ function DashboardPage() {
     return urgencyMap[urgencyValue] || (urgencyValue ? urgencyValue.charAt(0).toUpperCase() + urgencyValue.slice(1) : 'N/A');
   };
 
-  // Helper function to get Tailwind classes for styling request status badges
+  // Helper function to get Tailwind classes for status badge styling
   const getStatusClass = (status) => {
     switch (status) {
         case 'active': return 'bg-blue-100 text-blue-800';
@@ -147,22 +147,20 @@ function DashboardPage() {
     }
   };
 
-  // Handles initial loading states before content is ready
+  // Initial loading display logic
   if (!currentUser && (loadingDonorStatus || loadingMyRequests)) { 
     return <LoadingSpinner message="Loading user data..." size="lg" />;
   }
   if (!currentUser && !loadingDonorStatus && !loadingMyRequests) { 
-    // Should be caught by ProtectedRoute, but good as a fallback
     return <p className="p-4 text-center">Please log in to view your dashboard.</p>;
   }
-  // If currentUser is loaded, but data for both sections is still loading for the first time
   if (currentUser && (loadingDonorStatus && donorData === null) && (loadingMyRequests && myRequests.length === 0) ) {
      return <LoadingSpinner message="Loading dashboard data..." size="lg" />;
   }
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-8">
-      {/* Section displaying the user's donor profile status and information */}
+      {/* Donor Profile Section */}
       <section className="p-6 bg-white rounded-lg shadow-lg">
         <h2 className="text-2xl font-semibold text-red-700 mb-4">My Donor Profile</h2>
         {loadingDonorStatus ? (
@@ -195,7 +193,7 @@ function DashboardPage() {
         )}
       </section>
 
-      {/* Section displaying the user's posted blood requests */}
+      {/* "My Posted Blood Requests" Section */}
       <section className="p-6 bg-white rounded-lg shadow-lg">
         <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold text-red-700">My Posted Blood Requests</h2>
@@ -207,7 +205,7 @@ function DashboardPage() {
             </Link>
         </div>
 
-        {/* Displays errors from actions like updating status or deleting requests */}
+        {/* Displays errors from actions like update/delete status */}
         {actionError && (
           <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-md text-center">
             {actionError}
