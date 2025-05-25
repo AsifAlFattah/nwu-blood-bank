@@ -8,7 +8,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 function DashboardPage() {
   const { currentUser } = useAuth();
-  const navigate = useNavigate(); 
+  const navigate = useNavigate(); // For potential navigation actions from the dashboard
 
   // State for the user's donor profile section
   const [isDonor, setIsDonor] = useState(false);
@@ -82,8 +82,7 @@ function DashboardPage() {
   useEffect(() => {
     // Fetch data when currentUser is available or changes
     fetchUserSpecificData();
-  }, [currentUser]);
-
+  }, [currentUser]); // Re-fetch data if the current user changes
 
   // Handles updating the status of a blood request
   const handleUpdateRequestStatus = async (requestId, newStatus) => {
@@ -125,7 +124,7 @@ function DashboardPage() {
         year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
       });
     }
-    return 'N/A'; // Or handle other non-Timestamp cases as needed
+    return 'N/A';
   };
 
   // Helper function to get a displayable label for urgency levels
@@ -156,13 +155,14 @@ function DashboardPage() {
     // Should be caught by ProtectedRoute, but good as a fallback
     return <p className="p-4 text-center">Please log in to view your dashboard.</p>;
   }
+  // If currentUser is loaded, but data for both sections is still loading for the first time
   if (currentUser && (loadingDonorStatus && donorData === null) && (loadingMyRequests && myRequests.length === 0) ) {
      return <LoadingSpinner message="Loading dashboard data..." size="lg" />;
   }
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-8">
-      {/* Donor Profile Section */}
+      {/* Section displaying the user's donor profile status and information */}
       <section className="p-6 bg-white rounded-lg shadow-lg">
         <h2 className="text-2xl font-semibold text-red-700 mb-4">My Donor Profile</h2>
         {loadingDonorStatus ? (
@@ -195,7 +195,7 @@ function DashboardPage() {
         )}
       </section>
 
-      {/* "My Posted Blood Requests" Section */}
+      {/* Section displaying the user's posted blood requests */}
       <section className="p-6 bg-white rounded-lg shadow-lg">
         <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold text-red-700">My Posted Blood Requests</h2>
@@ -207,7 +207,7 @@ function DashboardPage() {
             </Link>
         </div>
 
-        {/* Displays errors from actions like update/delete status */}
+        {/* Displays errors from actions like updating status or deleting requests */}
         {actionError && (
           <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-md text-center">
             {actionError}
