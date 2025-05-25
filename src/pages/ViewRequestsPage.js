@@ -1,18 +1,17 @@
 // src/pages/ViewRequestsPage.js
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, query, where, orderBy, getDocs, Timestamp, doc, updateDoc } from 'firebase/firestore'; // Added doc, updateDoc
+import { collection, query, where, orderBy, getDocs, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../AuthContext'; // <--- IMPORT useAuth
+import { useAuth } from '../AuthContext';
 
 function ViewRequestsPage() {
-  const { currentUser } = useAuth(); // <--- GET currentUser
+  const { currentUser } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // No need for a new 'updating' state here yet, can add if complex feedback is needed per item
 
-  const fetchActiveRequests = async () => { // Encapsulated fetch logic
+  const fetchActiveRequests = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -22,7 +21,6 @@ function ViewRequestsPage() {
         where("status", "==", "active"),
         orderBy("requestedAt", "desc")
       );
-
       const querySnapshot = await getDocs(q);
       const activeRequests = [];
       querySnapshot.forEach((doc) => {
@@ -31,7 +29,7 @@ function ViewRequestsPage() {
       setRequests(activeRequests);
     } catch (err) {
       console.error("Error fetching active blood requests: ", err);
-      setError("Failed to fetch blood requests. Please try again.");
+      setError("Failed to fetch blood requests. Please try again. (Ensure Firestore indexes are created if prompted in console).");
     } finally {
       setLoading(false);
     }
@@ -42,34 +40,33 @@ function ViewRequestsPage() {
   }, []);
 
   const handleUpdateRequestStatus = async (requestId, newStatus) => {
-    if (!currentUser) {
-      console.error("User not logged in.");
-      // setError("You must be logged in to update status."); // Or some other feedback
+    if (!window.confirm(`Are you sure you want to mark this request as ${newStatus}?`)) {
       return;
     }
-
-    // Optional: Add a confirmation dialog here
-    // if (!window.confirm(`Are you sure you want to mark this request as ${newStatus}?`)) {
-    //   return;
-    // }
-
     try {
       const requestDocRef = doc(db, "bloodRequests", requestId);
-      await updateDoc(requestDocRef, {
-        status: newStatus
-      });
-      console.log(`Request ${requestId} status updated to ${newStatus}`);
-      // Refresh the list of active requests to reflect the change
-      fetchActiveRequests(); 
-      // Or, for more immediate UI update without re-fetch, filter out the updated request:
-      // setRequests(prevRequests => prevRequests.filter(req => req.id !== requestId));
+      await updateDoc(requestDocRef, { status: newStatus });
+      fetchActiveRequests(); // Refresh list
     } catch (err) {
       console.error(`Error updating request status for ${requestId}: `, err);
-      // setError(`Failed to update status for request ${requestId}.`); // Or item-specific error
-      alert(`Failed to update request status. Please try again.`); // Simple alert for now
+      alert(`Failed to update request status. Please try again.`);
     }
   };
 
+  const handleDeleteRequest = async (requestId) => {
+    if (!window.confirm("Are you sure you want to permanently delete this blood request? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      const requestDocRef = doc(db, "bloodRequests", requestId);
+      await deleteDoc(requestDocRef);
+      console.log(`Request ${requestId} deleted successfully.`);
+      fetchActiveRequests(); // Refresh the list
+    } catch (err) {
+      console.error(`Error deleting request ${requestId}: `, err);
+      alert(`Failed to delete blood request. Please try again.`);
+    }
+  };
 
   const formatDate = (timestamp) => {
     if (timestamp instanceof Timestamp) {
@@ -79,7 +76,7 @@ function ViewRequestsPage() {
     }
     return 'Date not available';
   };
-
+  
   const getUrgencyLabel = (urgencyValue) => {
     const urgencyMap = {
         'urgent': 'Urgent (Immediate Need)',
@@ -100,8 +97,9 @@ function ViewRequestsPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
+        {/* This is line 98 after correction: */}
         <h1 className="text-3xl font-bold text-center text-red-600 mb-8">Active Blood Requests</h1>
-
+        {/* This is line 99: */}
         {requests.length === 0 ? (
           <div className="text-center p-6 bg-white rounded-lg shadow-md">
             <p className="text-gray-600 mb-4">No active blood requests at the moment.</p>
@@ -127,7 +125,7 @@ function ViewRequestsPage() {
                       {getUrgencyLabel(req.urgency)}
                     </span>
                 </div>
-
+                
                 <div className="text-sm text-gray-700 space-y-1">
                   <p><strong>Units Required:</strong> {req.unitsRequired}</p>
                   <p><strong>Hospital:</strong> {req.hospitalName} {req.hospitalLocation && `(${req.hospitalLocation})`}</p>
@@ -137,25 +135,29 @@ function ViewRequestsPage() {
                   <p className="text-xs text-gray-500 pt-1">Requested by: {req.userEmail} on {formatDate(req.requestedAt)}</p>
                 </div>
 
-                {/* --- ACTION BUTTONS FOR REQUEST OWNER --- */}
+                {/* ACTION BUTTONS FOR REQUEST OWNER */}
                 {currentUser && currentUser.uid === req.userId && req.status === 'active' && (
                   <div className="mt-4 pt-4 border-t border-gray-200 flex flex-wrap gap-3">
                     <button
                       onClick={() => handleUpdateRequestStatus(req.id, 'fulfilled')}
-                      className="px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                      className="px-4 py-2 text-xs sm:text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md shadow-sm"
                     >
-                      Mark as Fulfilled
+                      Mark Fulfilled
                     </button>
                     <button
                       onClick={() => handleUpdateRequestStatus(req.id, 'cancelled')}
-                      className="px-4 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                      className="px-4 py-2 text-xs sm:text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-sm"
                     >
-                      Mark as Cancelled
+                      Mark Cancelled
                     </button>
-                    {/* We can add a delete button here later if needed */}
+                    <button
+                      onClick={() => handleDeleteRequest(req.id)}
+                      className="px-4 py-2 text-xs sm:text-sm font-medium text-white bg-red-500 hover:bg-red-700 rounded-md shadow-sm"
+                    >
+                      Delete Request
+                    </button>
                   </div>
                 )}
-                {/* --- END OF ACTION BUTTONS --- */}
               </li>
             ))}
           </ul>
