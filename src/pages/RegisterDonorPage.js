@@ -82,6 +82,7 @@ function RegisterDonorPage() {
         isAvailable: formData.isAvailable,
         lastDonationDate: formData.lastDonationDate,
         allowContactVisibility: formData.allowContactVisibility,
+        isVerified: false,
         registeredAt: serverTimestamp(),
       });
 
