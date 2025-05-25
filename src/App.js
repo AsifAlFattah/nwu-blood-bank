@@ -8,7 +8,8 @@ import DashboardPage from './pages/DashboardPage';
 import ProtectedRoute from './components/ProtectedRoute'; // Ensure this is used for protected routes
 import RegisterDonorPage from './pages/RegisterDonorPage';
 import EditDonorProfilePage from './pages/EditDonorProfilePage';
-import FindDonorsPage from './pages/FindDonorsPage'; // <--- IMPORT THIS
+import FindDonorsPage from './pages/FindDonorsPage'; 
+import PostRequestPage from './pages/PostRequestPage';
 
 import { useAuth } from './AuthContext';
 import { auth } from './firebase';
@@ -42,9 +43,14 @@ function App() {
             </li>
             {/* Add Find Donors link if user is logged in */}
             {currentUser && (
+              <>
                 <li>
                     <Link to="/find-donors" className="hover:text-red-200">Find Donors</Link>
                 </li>
+                <li> {/* <--- ADD LINK TO POST REQUEST */}
+                    <Link to="/post-request" className="hover:text-red-200">Post Request</Link>
+                </li>
+              </>
             )}
           </div>
 
@@ -98,6 +104,10 @@ function App() {
           <Route
             path="/find-donors" 
             element={<ProtectedRoute><FindDonorsPage /></ProtectedRoute>}
+          />
+          <Route
+            path="/post-request" 
+            element={<ProtectedRoute><PostRequestPage /></ProtectedRoute>}
           />
         </Routes>
       </div>
