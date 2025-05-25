@@ -1,16 +1,17 @@
 // src/pages/admin/AdminOverviewPage.js
 import React, { useState, useEffect } from 'react';
-import { db } from '../../firebase'; // Adjust path if necessary
-import { collection, query, where, getCountFromServer } from 'firebase/firestore'; // Added getCountFromServer
-import LoadingSpinner from '../../components/LoadingSpinner'; // Adjust path
+import { db } from '../../firebase';
+import { collection, query, where, getCountFromServer } from 'firebase/firestore';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import { Link } from 'react-router-dom'; // Import Link
 
 function AdminOverviewPage() {
   const [stats, setStats] = useState({
     totalDonors: 0,
-    totalUsers: 0, // Will count from 'users' collection
+    totalUsers: 0,
     activeRequests: 0,
     fulfilledRequests: 0,
-    // Add more stats as needed
+    cancelledRequests: 0, // NEW: Cancelled Requests
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,7 +26,7 @@ function AdminOverviewPage() {
         const donorSnapshot = await getCountFromServer(donorsCol);
         const totalDonorsCount = donorSnapshot.data().count;
 
-        // Get total users (from our 'users' collection where roles are stored)
+        // Get total users (from 'users' collection)
         const usersCol = collection(db, "users");
         const usersSnapshot = await getCountFromServer(usersCol);
         const totalUsersCount = usersSnapshot.data().count;
@@ -40,11 +41,17 @@ function AdminOverviewPage() {
         const fulfilledRequestsSnapshot = await getCountFromServer(fulfilledRequestsQuery);
         const fulfilledRequestsCount = fulfilledRequestsSnapshot.data().count;
 
+        // NEW: Get cancelled requests count
+        const cancelledRequestsQuery = query(collection(db, "bloodRequests"), where("status", "==", "cancelled"));
+        const cancelledRequestsSnapshot = await getCountFromServer(cancelledRequestsQuery);
+        const cancelledRequestsCount = cancelledRequestsSnapshot.data().count;
+
         setStats({
           totalDonors: totalDonorsCount,
           totalUsers: totalUsersCount,
           activeRequests: activeRequestsCount,
           fulfilledRequests: fulfilledRequestsCount,
+          cancelledRequests: cancelledRequestsCount, // NEW
         });
 
       } catch (err) {
@@ -66,42 +73,34 @@ function AdminOverviewPage() {
     return <p className="p-4 text-center text-red-600">{error}</p>;
   }
 
+  // Reusable StatCard component
+  const StatCard = ({ title, value, to, bgColorClass = 'bg-white', textColorClass = 'text-red-600' }) => (
+    <Link to={to} className={`block p-6 rounded-xl shadow-lg hover:shadow-2xl transition-shadow ${bgColorClass}`}>
+        <div className="flex flex-col items-center justify-center">
+            <h3 className="text-lg font-medium text-gray-500 mb-1">{title}</h3>
+            <p className={`text-4xl font-bold ${textColorClass}`}>{value}</p>
+        </div>
+    </Link>
+  );
+
+
   return (
     <div>
       <h2 className="text-2xl font-semibold text-gray-800 mb-6">Admin Overview</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Stat Card for Total Donors */}
-        <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center">
-          <h3 className="text-lg font-medium text-gray-500 mb-1">Total Donors</h3>
-          <p className="text-4xl font-bold text-red-600">{stats.totalDonors}</p>
-        </div>
-
-        {/* Stat Card for Total Users (from 'users' collection) */}
-        <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center">
-          <h3 className="text-lg font-medium text-gray-500 mb-1">Registered Users</h3>
-          <p className="text-4xl font-bold text-red-600">{stats.totalUsers}</p>
-        </div>
-
-        {/* Stat Card for Active Requests */}
-        <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center">
-          <h3 className="text-lg font-medium text-gray-500 mb-1">Active Requests</h3>
-          <p className="text-4xl font-bold text-blue-600">{stats.activeRequests}</p>
-        </div>
-
-        {/* Stat Card for Fulfilled Requests */}
-        <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center">
-          <h3 className="text-lg font-medium text-gray-500 mb-1">Fulfilled Requests</h3>
-          <p className="text-4xl font-bold text-green-600">{stats.fulfilledRequests}</p>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {/* Adjusted grid for 5 items */}
+        <StatCard title="Total Donors" value={stats.totalDonors} to="/admin/donors" textColorClass="text-red-600" />
+        <StatCard title="Registered Users" value={stats.totalUsers} to="/admin/users" textColorClass="text-red-600" />
+        <StatCard title="Active Requests" value={stats.activeRequests} to="/admin/requests" textColorClass="text-blue-600" />
+        <StatCard title="Fulfilled Requests" value={stats.fulfilledRequests} to="/admin/requests" textColorClass="text-green-600" />
+        <StatCard title="Cancelled Requests" value={stats.cancelledRequests} to="/admin/requests" textColorClass="text-yellow-600" />
       </div>
 
       <div className="mt-10 bg-white p-6 rounded-lg shadow-lg">
         <h3 className="text-xl font-semibold text-gray-700 mb-4">Quick Actions</h3>
         <p className="text-gray-600">
-            Select a management section from the sidebar to view details and perform actions.
+            Select a management section from the sidebar or click on the cards above to view details and perform actions.
         </p>
-        {/* You can add direct links or summaries here later */}
       </div>
     </div>
   );
