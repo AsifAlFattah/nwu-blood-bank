@@ -1,6 +1,6 @@
 // src/App.js
 import React from 'react';
-import { Routes, Route } from 'react-router-dom'; 
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'; 
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -13,22 +13,51 @@ import PostRequestPage from './pages/PostRequestPage';
 import ViewRequestsPage from './pages/ViewRequestsPage';
 import Navbar from './components/Navbar'; 
 import Footer from './components/Footer'; 
+
+// Admin specific imports
 import AdminRoute from './components/AdminRoute';
-import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminLayout from './pages/admin/AdminLayout'; // The new layout for the admin section
+import AdminOverviewPage from './pages/admin/AdminOverviewPage'; // New placeholder for admin overview
+import AdminDonorsPage from './pages/admin/AdminDonorsPage'; // Your existing page for listing donors
+import AdminRequestsPage from './pages/admin/AdminRequestsPage'; // New placeholder
 
-// Note: Authentication-related hooks (useAuth, useNavigate) and functions (signOut) 
-// are now primarily managed within components like Navbar.js, LoginPage.js, etc.
+// This component will conditionally render layouts based on the path
+function AppContent() {
+  const location = useLocation();
+  const isAdminPath = location.pathname.startsWith('/admin');
 
-function App() {
+  if (isAdminPath) {
+    // For admin paths, render only the AdminRoute and its children (which will include AdminLayout)
+    return (
+      <Routes>
+        <Route 
+          path="/admin/*" // Use /* to match all nested admin routes
+          element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }
+        >
+          {/* Nested routes within AdminLayout's <Outlet /> */}
+          {/* Default admin page redirects to overview */}
+          <Route index element={<Navigate to="overview" replace />} /> 
+          <Route path="overview" element={<AdminOverviewPage />} />
+          <Route path="donors" element={<AdminDonorsPage />} />
+          <Route path="requests" element={<AdminRequestsPage />} />
+          {/* Add more admin sub-pages here later, e.g., path="users" */}
+        </Route>
+        {/* Fallback or redirect for non-matched admin paths if necessary, or a 404 component */}
+        {/* <Route path="/admin/*" element={<Navigate to="/admin/overview" />} />  // Simplified fallback for now */}
+      </Routes>
+    );
+  }
+
+  // For non-admin paths, render the standard layout with Navbar, content, and Footer
   return (
-    // Main application container using flexbox to position footer correctly.
-    // min-h-screen ensures it takes at least the full viewport height.
-    // pt-0 means content will start at the very top, potentially under a sticky navbar.
-    // Individual pages might need internal padding if navbar overlap is not desired for their content.
-    <div className="App flex flex-col min-h-screen bg-gray-100 pt-0"> 
+    // Main application container for non-admin pages
+    // pt-0 based on your preference for navbar overlap
+    <div className="flex flex-col min-h-screen bg-gray-100 pt-0"> 
       <Navbar /> 
-      
-      {/* Main content area that expands to fill available space */}
       <main className="container mx-auto p-4 flex-grow">
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -58,22 +87,23 @@ function App() {
             path="/view-requests" 
             element={<ProtectedRoute><ViewRequestsPage /></ProtectedRoute>}
           />
-          {/* Admin Routes */}
-          <Route 
-            path="/admin/dashboard" // Or just "/admin"
-            element={
-              <AdminRoute>
-                <AdminDashboardPage />
-              </AdminRoute>
-            } 
-          />
+          {/* If /admin routes are not matched above, this could lead to a blank page or 404 if not handled */}
+          {/* Consider a catch-all 404 route for non-admin paths */}
+          <Route path="*" element={<Navigate to="/" replace />} /> {/* Basic catch-all for non-admin, non-matched routes */}
         </Routes>
-        
       </main>
-      
-      <Footer /> {/* Footer component placed after the main content */}
+      <Footer />
     </div>
   );
 }
 
-export default App; 
+// App component now just sets up the Router context (if not already in index.js)
+// and renders AppContent which handles layout conditional logic.
+// Since your index.js already has <Router>, App can simply be AppContent.
+function App() {
+  // BrowserRouter should be in index.js wrapping <App />
+  // This App component now assumes it's already within a Router context.
+  return <AppContent />;
+}
+
+export default App;

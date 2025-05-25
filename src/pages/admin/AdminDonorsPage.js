@@ -1,10 +1,10 @@
-// src/pages/admin/AdminDashboardPage.js
+// src/pages/admin/AdminDonorsPage.js
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase'; // Adjust path if firebase.js is elsewhere
 import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import LoadingSpinner from '../../components/LoadingSpinner'; // Adjust path
 
-function AdminDashboardPage() {
+function AdminDonorsPage() {
   const [allDonors, setAllDonors] = useState([]);
   const [loadingDonors, setLoadingDonors] = useState(true);
   const [errorDonors, setErrorDonors] = useState(null);
@@ -127,4 +127,4 @@ function AdminDashboardPage() {
   );
 }
 
-export default AdminDashboardPage;
+export default AdminDonorsPage;
