@@ -1,7 +1,8 @@
 // src/pages/FindDonorsPage.js
 import React, { useState } from 'react';
 import { db } from '../firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+// Ensure Timestamp is imported from firebase/firestore
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore'; 
 import LoadingSpinner from '../components/LoadingSpinner';
 
 function FindDonorsPage() {
@@ -13,6 +14,26 @@ function FindDonorsPage() {
 
   const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
+  // Helper function to format dates, handles Firestore Timestamps and date strings
+  const formatDate = (timestamp) => {
+    if (timestamp instanceof Timestamp) { // Check if it's a Firestore Timestamp object
+      return timestamp.toDate().toLocaleDateString('en-US', { 
+        year: 'numeric', month: 'long', day: 'numeric' 
+      });
+    }
+    // If it's already a string date (as saved from input type="date")
+    if (typeof timestamp === 'string' && timestamp.length > 0) {
+        try {
+            return new Date(timestamp).toLocaleDateString('en-US', { 
+              year: 'numeric', month: 'long', day: 'numeric' 
+            });
+        } catch (e) {
+            return timestamp; // Return original string if it's not a valid date string
+        }
+    }
+    return ''; // Return empty or 'N/A' if no valid date
+  };
+
   const handleSearch = async (e) => {
     e.preventDefault();
     setDonors([]);
@@ -20,7 +41,7 @@ function FindDonorsPage() {
 
     if (!searchBloodGroup) {
       setError("Please select a blood group to search.");
-      setLoading(false); 
+      setLoading(false);
       return;
     }
     setError(null);
@@ -31,7 +52,8 @@ function FindDonorsPage() {
       const q = query(
         donorsRef,
         where("bloodGroup", "==", searchBloodGroup),
-        where("isAvailable", "==", true)
+        where("isAvailable", "==", true),
+        where("isProfileActive", "==", true) // Ensure only active profiles are searched
       );
 
       const querySnapshot = await getDocs(q);
@@ -41,12 +63,6 @@ function FindDonorsPage() {
       });
 
       setDonors(foundDonors);
-      if (foundDonors.length === 0) {
-        console.log(`No available donors found for blood group: ${searchBloodGroup}`);
-      } else {
-        console.log(`Found donors:`, foundDonors);
-      }
-
     } catch (err) {
       console.error("Error fetching donors: ", err);
       setError("Failed to fetch donors. Please try again. (Ensure Firestore indexes are created if prompted in console)");
@@ -74,11 +90,9 @@ function FindDonorsPage() {
               {bloodGroups.map(group => <option key={group} value={group}>{group}</option>)}
             </select>
           </div>
-          {/* Search button */}
           <button 
             type="submit" 
             disabled={loading}
-            // Updated button classes for primary action (blue)
             className="w-full sm:w-auto px-6 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
             {loading ? 'Searching...' : 'Search'}
@@ -86,9 +100,7 @@ function FindDonorsPage() {
         </form>
 
         {error && <p className="text-sm text-red-600 text-center mb-4">{error}</p>}
-        
         {loading && <LoadingSpinner message="Searching for donors..." />} 
-        
         {!loading && searched && donors.length === 0 && !error && searchBloodGroup && (
           <p className="text-center text-gray-600">No available donors found for blood group: {searchBloodGroup}.</p>
         )}
@@ -100,18 +112,32 @@ function FindDonorsPage() {
               {donors.map(donor => (
                 <li key={donor.id} className="p-4 bg-gray-50 rounded-lg shadow hover:shadow-lg transition-shadow">
                   <h3 className="font-semibold text-lg text-red-700">{donor.fullName}</h3>
-                  <p className="text-sm text-gray-700">Blood Group: <span className="font-bold">{donor.bloodGroup}</span></p>
-                  {donor.allowContactVisibility ? (
-                    <p className="text-sm text-gray-700">Contact: {donor.contactNumber}</p>
-                  ) : (
-                    <p className="text-sm text-gray-500 italic">Contact information is private.</p>
-                  )}
-                  <p className={`text-sm font-medium ${donor.isAvailable ? 'text-green-600' : 'text-yellow-600'}`}>
-                    Status: {donor.isAvailable ? "Available" : "Not Currently Available"}
-                  </p>
-                  {donor.lastDonationDate && (
-                    <p className="text-xs text-gray-500">Last Donated: {donor.lastDonationDate}</p>
-                  )}
+                  <div className="text-sm text-gray-700 mt-1 space-y-0.5">
+                    <p>Blood Group: <span className="font-bold">{donor.bloodGroup}</span></p>
+                    {donor.universityId && (
+                        <p>University ID: {donor.universityId}</p>
+                    )}
+                    <p>
+                      Admin Verified: 
+                      <span className={`ml-1 px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${donor.isVerified ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'}`}>
+                        {donor.isVerified === undefined ? "N/A" : donor.isVerified ? "Yes" : "No"}
+                      </span>
+                    </p>
+                    {donor.allowContactVisibility ? (
+                      <p>Contact: {donor.contactNumber}</p>
+                    ) : (
+                      <p className="italic text-gray-500">Contact information is private.</p>
+                    )}
+                    <p>
+                      Current Availability: 
+                      <span className={`ml-1 px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${donor.isAvailable ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-700'}`}>
+                        {donor.isAvailable ? "Available" : "Not Available"}
+                      </span>
+                    </p>
+                    {donor.lastDonationDate && (
+                      <p className="text-xs text-gray-500">Last Donated: {formatDate(donor.lastDonationDate)}</p>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

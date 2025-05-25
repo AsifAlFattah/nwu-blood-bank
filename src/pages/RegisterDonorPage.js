@@ -83,10 +83,11 @@ function RegisterDonorPage() {
         lastDonationDate: formData.lastDonationDate,
         allowContactVisibility: formData.allowContactVisibility,
         isVerified: false,
+        isProfileActive: true,
         registeredAt: serverTimestamp(),
       });
 
-      console.log("Donor registered successfully with university info and visibility preference!");
+      console.log("Donor registered successfully with profile active status!");
       // Consider adding an on-page success message before redirecting
       setLoading(false);
       navigate('/dashboard'); 
