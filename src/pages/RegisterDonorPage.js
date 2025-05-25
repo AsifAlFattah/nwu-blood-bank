@@ -1,8 +1,8 @@
 // src/pages/RegisterDonorPage.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext'; // To get current user's UID
-import { db } from '../firebase'; // Your Firestore instance
+import { useAuth } from '../AuthContext';
+import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 
 function RegisterDonorPage() {
@@ -11,11 +11,11 @@ function RegisterDonorPage() {
 
   const [formData, setFormData] = useState({
     fullName: '',
-    bloodGroup: '', // e.g., A+, O-, AB+
+    bloodGroup: '',
     contactNumber: '',
-    isAvailable: true, // Default to available
-    lastDonationDate: '', // Optional
-    // We can add contactVisibility later if needed
+    isAvailable: true,
+    lastDonationDate: '',
+    allowContactVisibility: false, // <--- Default to not visible
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -48,29 +48,29 @@ function RegisterDonorPage() {
     }
 
     try {
-      // Optional: Check if user is already a donor to prevent duplicate entries
       const donorQuery = query(collection(db, "donors"), where("userId", "==", currentUser.uid));
       const querySnapshot = await getDocs(donorQuery);
       if (!querySnapshot.empty) {
         setError("You are already registered as a donor.");
         setLoading(false);
-        // Optionally, redirect to a donor profile page or dashboard
-        // navigate('/donor-profile'); 
         return;
       }
 
-      // Add donor information to Firestore
       await addDoc(collection(db, "donors"), {
-        userId: currentUser.uid, // Link donor profile to the authenticated user
-        email: currentUser.email, // Store user's email for convenience
-        ...formData,
-        registeredAt: serverTimestamp(), // Timestamp of registration
+        userId: currentUser.uid,
+        email: currentUser.email,
+        fullName: formData.fullName, // Explicitly list fields for clarity
+        bloodGroup: formData.bloodGroup,
+        contactNumber: formData.contactNumber,
+        isAvailable: formData.isAvailable,
+        lastDonationDate: formData.lastDonationDate,
+        allowContactVisibility: formData.allowContactVisibility, // <--- SAVE THIS
+        registeredAt: serverTimestamp(),
       });
 
-      console.log("Donor registered successfully!");
+      console.log("Donor registered successfully with visibility preference!");
       setLoading(false);
-      // TODO: Add a success message/toast
-      navigate('/dashboard'); // Redirect to dashboard or a confirmation page
+      navigate('/dashboard');
     } catch (err) {
       console.error("Error registering donor: ", err);
       setError("Failed to register donor. Please try again. " + err.message);
@@ -83,6 +83,8 @@ function RegisterDonorPage() {
       <div className="w-full max-w-lg p-8 space-y-6 bg-white rounded-lg shadow-md">
         <h1 className="text-3xl font-bold text-center text-red-600">Register as a Blood Donor</h1>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* ... Full Name, Blood Group, Contact Number, Last Donation Date fields ... */}
+          {/* (No changes to these fields, they remain as they were) */}
           <div>
             <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Full Name</label>
             <input type="text" name="fullName" id="fullName" required value={formData.fullName} onChange={handleChange}
@@ -115,6 +117,25 @@ function RegisterDonorPage() {
                    className="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500" />
             <label htmlFor="isAvailable" className="ml-2 block text-sm text-gray-900">Currently available to donate</label>
           </div>
+
+          {/* --- NEW CHECKBOX FOR CONTACT VISIBILITY --- */}
+          <div className="flex items-start"> {/* items-start for better alignment if label wraps */}
+            <div className="flex items-center h-5">
+                <input 
+                    type="checkbox" 
+                    name="allowContactVisibility" 
+                    id="allowContactVisibility" 
+                    checked={formData.allowContactVisibility} 
+                    onChange={handleChange}
+                    className="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500" />
+            </div>
+            <div className="ml-3 text-sm">
+                <label htmlFor="allowContactVisibility" className="font-medium text-gray-700">Make contact number visible?</label>
+                <p className="text-xs text-gray-500">Check this if you consent to your contact number being shown to logged-in users searching for donors.</p>
+            </div>
+          </div>
+          {/* --- END OF NEW CHECKBOX --- */}
+
 
           {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 

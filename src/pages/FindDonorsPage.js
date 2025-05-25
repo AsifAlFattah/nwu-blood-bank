@@ -1,7 +1,7 @@
 // src/pages/FindDonorsPage.js
 import React, { useState } from 'react';
-import { db } from '../firebase'; // Your Firestore instance
-import { collection, query, where, getDocs } from 'firebase/firestore'; // Firestore functions
+import { db } from '../firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 function FindDonorsPage() {
   const [searchBloodGroup, setSearchBloodGroup] = useState('');
@@ -19,30 +19,28 @@ function FindDonorsPage() {
 
     if (!searchBloodGroup) {
       setError("Please select a blood group to search.");
-      setLoading(false); // Ensure loading is false if no search is made
+      setLoading(false);
       return;
     }
     setError(null);
     setLoading(true);
 
     try {
-      // Construct the Firestore query
-      // We are searching for donors with the selected blood group AND who are available
       const donorsRef = collection(db, "donors");
       const q = query(
         donorsRef,
         where("bloodGroup", "==", searchBloodGroup),
-        where("isAvailable", "==", true) // Only find available donors
+        where("isAvailable", "==", true)
       );
 
       const querySnapshot = await getDocs(q);
       const foundDonors = [];
       querySnapshot.forEach((doc) => {
-        // doc.data() is never undefined for query doc snapshots
         foundDonors.push({ id: doc.id, ...doc.data() });
       });
 
       setDonors(foundDonors);
+      // console.log for debugging
       if (foundDonors.length === 0) {
         console.log(`No available donors found for blood group: ${searchBloodGroup}`);
       } else {
@@ -62,6 +60,7 @@ function FindDonorsPage() {
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
         <h1 className="text-3xl font-bold text-center text-red-600 mb-8">Find Blood Donors</h1>
 
+        {/* Search Form remains the same */}
         <form onSubmit={handleSearch} className="mb-8 flex flex-col sm:flex-row items-center gap-4">
           <div className="w-full sm:w-auto sm:flex-grow">
             <label htmlFor="searchBloodGroup" className="sr-only">Select Blood Group</label>
@@ -86,9 +85,7 @@ function FindDonorsPage() {
         </form>
 
         {error && <p className="text-sm text-red-600 text-center mb-4">{error}</p>}
-
         {loading && <p className="text-center text-gray-600">Searching for donors...</p>}
-
         {!loading && searched && donors.length === 0 && !error && searchBloodGroup && (
           <p className="text-center text-gray-600">No available donors found for blood group: {searchBloodGroup}.</p>
         )}
@@ -101,14 +98,17 @@ function FindDonorsPage() {
                 <li key={donor.id} className="p-4 bg-gray-50 rounded-lg shadow hover:shadow-lg transition-shadow">
                   <h3 className="font-semibold text-lg text-red-700">{donor.fullName}</h3>
                   <p className="text-sm text-gray-700">Blood Group: <span className="font-bold">{donor.bloodGroup}</span></p>
-                  {/* IMPORTANT: Displaying contact information directly needs careful consideration for privacy.
-                    For now, we'll display it for testing. 
-                    In a real app, you might want a "Request Contact" button or similar,
-                    or honor donor's privacy preferences if you implement them.
-                  */}
-                  <p className="text-sm text-gray-700">Contact: {donor.contactNumber}</p>
+
+                  {/* --- MODIFIED CONTACT INFO DISPLAY --- */}
+                  {donor.allowContactVisibility ? (
+                    <p className="text-sm text-gray-700">Contact: {donor.contactNumber}</p>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">Contact information is private.</p>
+                  )}
+                  {/* --- END OF MODIFIED CONTACT INFO DISPLAY --- */}
+
                   <p className={`text-sm font-medium ${donor.isAvailable ? 'text-green-600' : 'text-yellow-600'}`}>
-                    Status: {donor.isAvailable ? "Available" : "Not Currently Available (info might be outdated)"}
+                    Status: {donor.isAvailable ? "Available" : "Not Currently Available"}
                   </p>
                   {donor.lastDonationDate && (
                     <p className="text-xs text-gray-500">Last Donated: {donor.lastDonationDate}</p>
