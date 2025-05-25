@@ -1,7 +1,7 @@
 // src/pages/admin/AdminOverviewPage.js
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase'; // Adjust path if necessary
-import { collection, query, where, getDocs,getCountFromServer } from 'firebase/firestore'; // Added getCountFromServer
+import { collection, query, where, getCountFromServer } from 'firebase/firestore'; // Added getCountFromServer
 import LoadingSpinner from '../../components/LoadingSpinner'; // Adjust path
 
 function AdminOverviewPage() {
