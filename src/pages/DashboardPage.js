@@ -1,25 +1,24 @@
 // src/pages/DashboardPage.js
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Added useNavigate
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { db } from '../firebase';
-import { collection, query, where, getDocs, orderBy, Timestamp, doc, updateDoc } from 'firebase/firestore'; // Added orderBy, doc, updateDoc
+// Ensure deleteDoc is imported
+import { collection, query, where, getDocs, orderBy, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 function DashboardPage() {
   const { currentUser } = useAuth();
-  const navigate = useNavigate(); // For navigation if needed
+  const navigate = useNavigate();
 
-  // State for donor status (existing)
   const [isDonor, setIsDonor] = useState(false);
   const [donorData, setDonorData] = useState(null);
   const [loadingDonorStatus, setLoadingDonorStatus] = useState(true);
 
-  // State for user's blood requests
   const [myRequests, setMyRequests] = useState([]);
   const [loadingMyRequests, setLoadingMyRequests] = useState(true);
   const [errorMyRequests, setErrorMyRequests] = useState(null);
 
-  const fetchUserSpecificData = async () => { // Combined fetching function
+  const fetchUserSpecificData = async () => {
     if (!currentUser) {
       setLoadingDonorStatus(false);
       setLoadingMyRequests(false);
@@ -28,6 +27,7 @@ function DashboardPage() {
 
     // Fetch Donor Status
     setLoadingDonorStatus(true);
+    // ... (donor status fetching logic remains the same) ...
     const donorQuery = query(collection(db, "donors"), where("userId", "==", currentUser.uid));
     try {
       const querySnapshot = await getDocs(donorQuery);
@@ -43,6 +43,7 @@ function DashboardPage() {
     } finally {
       setLoadingDonorStatus(false);
     }
+
 
     // Fetch User's Blood Requests
     setLoadingMyRequests(true);
@@ -68,22 +69,25 @@ function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchUserSpecificData();
+    if (currentUser) { // Only fetch if currentUser is available
+        fetchUserSpecificData();
+    } else { // Reset states if user logs out while on dashboard (or not yet loaded)
+        setIsDonor(false);
+        setDonorData(null);
+        setMyRequests([]);
+        setLoadingDonorStatus(false);
+        setLoadingMyRequests(false);
+    }
   }, [currentUser]);
 
 
   const handleUpdateRequestStatus = async (requestId, newStatus) => {
-    // This function is similar to the one in ViewRequestsPage
-    // Consider abstracting it if used in many places, or keep it here for now
     if (!window.confirm(`Are you sure you want to mark this request as ${newStatus}?`)) {
       return;
     }
     try {
       const requestDocRef = doc(db, "bloodRequests", requestId);
-      await updateDoc(requestDocRef, {
-        status: newStatus
-      });
-      // Refresh data after update
+      await updateDoc(requestDocRef, { status: newStatus });
       fetchUserSpecificData(); 
     } catch (err) {
       console.error(`Error updating request status for ${requestId}: `, err);
@@ -91,41 +95,73 @@ function DashboardPage() {
     }
   };
 
-  // Helper functions (can be moved to a utils file later if needed)
-  const formatDate = (timestamp) => {
-    if (timestamp instanceof Timestamp) {
-      return timestamp.toDate().toLocaleDateString('en-US', {
-        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-      });
+  const handleDeleteRequest = async (requestId) => { // <--- ADD THIS FUNCTION
+    if (!window.confirm("Are you sure you want to permanently delete this blood request? This action cannot be undone.")) {
+      return;
     }
-    return 'N/A';
-  };
-  const getUrgencyLabel = (urgencyValue) => { /* ... same as in ViewRequestsPage ... */ 
-    const urgencyMap = {
-        'urgent': 'Urgent',
-        'moderate': 'Moderate',
-        'low': 'Low'
-    };
-    return urgencyMap[urgencyValue] || urgencyValue;
-  };
-  const getStatusClass = (status) => {
-    switch (status) {
-        case 'active': return 'bg-blue-100 text-blue-800';
-        case 'fulfilled': return 'bg-green-100 text-green-800';
-        case 'cancelled': return 'bg-yellow-100 text-yellow-800';
-        default: return 'bg-gray-100 text-gray-800';
+    try {
+      const requestDocRef = doc(db, "bloodRequests", requestId);
+      await deleteDoc(requestDocRef);
+      console.log(`Request ${requestId} deleted successfully from dashboard.`);
+      fetchUserSpecificData(); // Re-fetch user data to update the list
+    } catch (err) {
+      console.error(`Error deleting request ${requestId} from dashboard: `, err);
+      alert(`Failed to delete blood request. Please try again.`);
     }
   };
 
+  // Helper functions (formatDate, getUrgencyLabel, getStatusClass) remain the same
+  const formatDate = (timestamp) => { /* ... */ };
+  const getUrgencyLabel = (urgencyValue) => { /* ... */ };
+  const getStatusClass = (status) => { /* ... */ };
+  // (Copy these functions from your previous DashboardPage.js or ViewRequestsPage.js if they are not already here)
+  // For brevity, I'll assume they are present. If not, here they are again:
+  // const formatDate = (timestamp) => { ... }; (from ViewRequestsPage)
+  // const getUrgencyLabel = (urgencyValue) => { ... }; (from ViewRequestsPage, you might want simpler labels for dashboard)
+  // const getStatusClass = (status) => { ... }; (from ViewRequestsPage or define new ones)
+  // Make sure these helper functions are defined within DashboardPage or imported.
+  // For example:
+  // const formatDate = (timestamp) => {
+  //   if (timestamp instanceof Timestamp) {
+  //     return timestamp.toDate().toLocaleDateString('en-US', {
+  //       year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+  //     });
+  //   }
+  //   return 'N/A';
+  // };
+  // const getUrgencyLabel = (urgencyValue) => { 
+  //   const urgencyMap = {
+  //       'urgent': 'Urgent',
+  //       'moderate': 'Moderate',
+  //       'low': 'Low'
+  //   };
+  //   return urgencyMap[urgencyValue] || urgencyValue;
+  // };
+  // const getStatusClass = (status) => {
+  //   switch (status) {
+  //       case 'active': return 'bg-blue-100 text-blue-800';
+  //       case 'fulfilled': return 'bg-green-100 text-green-800';
+  //       case 'cancelled': return 'bg-yellow-100 text-yellow-800';
+  //       default: return 'bg-gray-100 text-gray-800';
+  //   }
+  // };
 
-  if (!currentUser) {
-    return <p className="p-4">Loading user information...</p>; // Or redirect via ProtectedRoute
+
+  if (!currentUser && !loadingDonorStatus && !loadingMyRequests) { 
+    // This case might not be hit frequently due to ProtectedRoute, but good for initial load before currentUser is set
+    return <p className="p-4 text-center">Please log in to view your dashboard.</p>;
   }
+  // You might want a general loading state if both are loading initially
+  if (loadingDonorStatus || loadingMyRequests && (!donorData && myRequests.length === 0) ) {
+     return <p className="p-4 text-center">Loading dashboard data...</p>;
+  }
+
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-8">
-      {/* Donor Status Section */}
+      {/* Donor Status Section (remains the same) */}
       <section className="p-6 bg-white rounded-lg shadow-lg">
+        {/* ... existing donor status JSX ... */}
         <h2 className="text-2xl font-semibold text-red-700 mb-4">My Donor Profile</h2>
         {loadingDonorStatus ? (
           <p>Loading donor status...</p>
@@ -189,22 +225,31 @@ function DashboardPage() {
                 <p className="text-sm text-gray-600">Hospital: {req.hospitalName}</p>
                 <p className="text-sm text-gray-600">Urgency: {getUrgencyLabel(req.urgency)}</p>
                 <p className="text-xs text-gray-500 mt-1">Requested: {formatDate(req.requestedAt)}</p>
-                {req.status === 'active' && (
-                    <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-2">
-                        <button
-                            onClick={() => handleUpdateRequestStatus(req.id, 'fulfilled')}
-                            className="px-3 py-1 text-xs font-medium text-white bg-green-500 hover:bg-green-600 rounded-md shadow-sm"
-                        >
-                            Mark Fulfilled
-                        </button>
-                        <button
-                            onClick={() => handleUpdateRequestStatus(req.id, 'cancelled')}
-                            className="px-3 py-1 text-xs font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-sm"
-                        >
-                            Mark Cancelled
-                        </button>
-                    </div>
-                )}
+                <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-2">
+                    {req.status === 'active' && ( // Only show status update buttons for active requests
+                        <>
+                            <button
+                                onClick={() => handleUpdateRequestStatus(req.id, 'fulfilled')}
+                                className="px-3 py-1 text-xs font-medium text-white bg-green-500 hover:bg-green-600 rounded-md shadow-sm"
+                            >
+                                Mark Fulfilled
+                            </button>
+                            <button
+                                onClick={() => handleUpdateRequestStatus(req.id, 'cancelled')}
+                                className="px-3 py-1 text-xs font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-sm"
+                            >
+                                Mark Cancelled
+                            </button>
+                        </>
+                    )}
+                    {/* Delete button can be available for any status of their own request */}
+                    <button 
+                        onClick={() => handleDeleteRequest(req.id)}
+                        className="px-3 py-1 text-xs font-medium text-white bg-red-500 hover:bg-red-700 rounded-md shadow-sm"
+                    >
+                        Delete Request
+                    </button>
+                </div>
               </li>
             ))}
           </ul>
