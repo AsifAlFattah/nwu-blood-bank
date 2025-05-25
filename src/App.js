@@ -1,13 +1,14 @@
 // src/App.js
 import React from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom'; // Keep useNavigate if used, seems it is for handleLogout
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/ProtectedRoute'; // Ensure this is used for protected routes
 import RegisterDonorPage from './pages/RegisterDonorPage';
 import EditDonorProfilePage from './pages/EditDonorProfilePage';
+import FindDonorsPage from './pages/FindDonorsPage'; // <--- IMPORT THIS
 
 import { useAuth } from './AuthContext';
 import { auth } from './firebase';
@@ -18,7 +19,6 @@ function App() {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    // ... your logout logic ...
     try {
       await signOut(auth);
       console.log("User signed out successfully");
@@ -31,8 +31,8 @@ function App() {
   return (
     <div className="App min-h-screen bg-gray-100">
       <nav className="bg-red-600 p-4 text-white shadow-md">
-        {/* ... your existing navbar code ... it should already be dynamic ... */}
         <ul className="container mx-auto flex justify-between items-center">
+          {/* Left side of Navbar */}
           <div className="flex space-x-4 items-center">
             <li>
               <Link to="/" className="hover:text-red-200 font-semibold text-lg">NWU Blood Bank</Link>
@@ -40,7 +40,15 @@ function App() {
             <li>
               <Link to="/" className="hover:text-red-200">Home</Link>
             </li>
+            {/* Add Find Donors link if user is logged in */}
+            {currentUser && (
+                <li>
+                    <Link to="/find-donors" className="hover:text-red-200">Find Donors</Link>
+                </li>
+            )}
           </div>
+
+          {/* Right side of Navbar */}
           <div className="flex space-x-4 items-center">
             {currentUser ? (
               <>
@@ -86,6 +94,10 @@ function App() {
           <Route
             path="/edit-donor-profile"
             element={<ProtectedRoute><EditDonorProfilePage /></ProtectedRoute>}
+          />
+          <Route
+            path="/find-donors" 
+            element={<ProtectedRoute><FindDonorsPage /></ProtectedRoute>}
           />
         </Routes>
       </div>
