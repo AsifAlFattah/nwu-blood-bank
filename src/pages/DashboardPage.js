@@ -4,23 +4,27 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { db } from '../firebase';
 import { collection, query, where, getDocs, orderBy, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import LoadingSpinner from '../components/LoadingSpinner'; // <--- IMPORT LoadingSpinner
+import LoadingSpinner from '../components/LoadingSpinner';
 
 function DashboardPage() {
   const { currentUser } = useAuth();
   const navigate = useNavigate(); 
 
+  // State for the user's donor profile section
   const [isDonor, setIsDonor] = useState(false);
   const [donorData, setDonorData] = useState(null);
   const [loadingDonorStatus, setLoadingDonorStatus] = useState(true);
 
+  // State for the "My Posted Blood Requests" section
   const [myRequests, setMyRequests] = useState([]);
   const [loadingMyRequests, setLoadingMyRequests] = useState(true);
-  const [errorMyRequests, setErrorMyRequests] = useState(null);
-  const [actionError, setActionError] = useState(null);
+  const [errorMyRequests, setErrorMyRequests] = useState(null); // For errors when fetching user's requests
+  const [actionError, setActionError] = useState(null); // For errors from update/delete actions on this page
 
+  // Fetches both donor status and user's blood requests when the component mounts or currentUser changes
   const fetchUserSpecificData = async () => {
     if (!currentUser) {
+      // Reset all states if no user is logged in
       setLoadingDonorStatus(false);
       setLoadingMyRequests(false);
       setIsDonor(false);
@@ -31,7 +35,7 @@ function DashboardPage() {
       return;
     }
 
-    setActionError(null);
+    setActionError(null); // Clear previous action errors on new data fetch
 
     // Fetch Donor Status
     setLoadingDonorStatus(true);
@@ -47,13 +51,14 @@ function DashboardPage() {
       }
     } catch (error) {
       console.error("Error checking donor status:", error);
+      // Consider setting a specific error state for donor status if needed
     } finally {
       setLoadingDonorStatus(false);
     }
 
-    // Fetch User's Blood Requests
+    // Fetch User's Blood Requests, ordered by most recent first
     setLoadingMyRequests(true);
-    setErrorMyRequests(null);
+    setErrorMyRequests(null); // Clear previous fetch error for requests
     const requestsQuery = query(
       collection(db, "bloodRequests"),
       where("userId", "==", currentUser.uid),
@@ -75,10 +80,12 @@ function DashboardPage() {
   };
 
   useEffect(() => {
+    // Fetch data when currentUser is available or changes
     fetchUserSpecificData();
   }, [currentUser]);
 
 
+  // Handles updating the status of a blood request
   const handleUpdateRequestStatus = async (requestId, newStatus) => {
     setActionError(null);
     if (!window.confirm(`Are you sure you want to mark this request as ${newStatus}?`)) {
@@ -87,13 +94,14 @@ function DashboardPage() {
     try {
       const requestDocRef = doc(db, "bloodRequests", requestId);
       await updateDoc(requestDocRef, { status: newStatus });
-      fetchUserSpecificData();
+      fetchUserSpecificData(); // Refresh dashboard data
     } catch (err) {
       console.error(`Error updating request status for ${requestId}: `, err);
       setActionError(`Failed to update request status. Please try again.`);
     }
   };
 
+  // Handles deleting a blood request
   const handleDeleteRequest = async (requestId) => {
     setActionError(null);
     if (!window.confirm("Are you sure you want to permanently delete this blood request? This action cannot be undone.")) {
@@ -103,23 +111,24 @@ function DashboardPage() {
       const requestDocRef = doc(db, "bloodRequests", requestId);
       await deleteDoc(requestDocRef);
       console.log(`Request ${requestId} deleted successfully from dashboard.`);
-      fetchUserSpecificData();
+      fetchUserSpecificData(); // Refresh dashboard data
     } catch (err) {
       console.error(`Error deleting request ${requestId} from dashboard: `, err);
       setActionError(`Failed to delete blood request. Please try again.`);
     }
   };
 
-  // Helper functions
+  // Helper function to format Firestore Timestamps for display
   const formatDate = (timestamp) => {
     if (timestamp instanceof Timestamp) {
       return timestamp.toDate().toLocaleDateString('en-US', {
         year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
       });
     }
-    return 'N/A';
+    return 'N/A'; // Or handle other non-Timestamp cases as needed
   };
 
+  // Helper function to get a displayable label for urgency levels
   const getUrgencyLabel = (urgencyValue) => { 
     const urgencyMap = {
         'urgent': 'Urgent',
@@ -129,6 +138,7 @@ function DashboardPage() {
     return urgencyMap[urgencyValue] || (urgencyValue ? urgencyValue.charAt(0).toUpperCase() + urgencyValue.slice(1) : 'N/A');
   };
 
+  // Helper function to get Tailwind classes for styling request status badges
   const getStatusClass = (status) => {
     switch (status) {
         case 'active': return 'bg-blue-100 text-blue-800';
@@ -138,25 +148,25 @@ function DashboardPage() {
     }
   };
 
-  // Initial loading logic
+  // Handles initial loading states before content is ready
   if (!currentUser && (loadingDonorStatus || loadingMyRequests)) { 
     return <LoadingSpinner message="Loading user data..." size="lg" />;
   }
   if (!currentUser && !loadingDonorStatus && !loadingMyRequests) { 
+    // Should be caught by ProtectedRoute, but good as a fallback
     return <p className="p-4 text-center">Please log in to view your dashboard.</p>;
   }
-  // If currentUser is loaded, but data for both sections is still loading for the first time
-  if (currentUser && (loadingDonorStatus && donorData === null) && (loadingMyRequests && myRequests.length === 0)) {
+  if (currentUser && (loadingDonorStatus && donorData === null) && (loadingMyRequests && myRequests.length === 0) ) {
      return <LoadingSpinner message="Loading dashboard data..." size="lg" />;
   }
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-8">
-      {/* Donor Status Section */}
+      {/* Donor Profile Section */}
       <section className="p-6 bg-white rounded-lg shadow-lg">
         <h2 className="text-2xl font-semibold text-red-700 mb-4">My Donor Profile</h2>
         {loadingDonorStatus ? (
-          <LoadingSpinner message="Loading donor profile..." /> // <--- UPDATED
+          <LoadingSpinner message="Loading donor profile..." />
         ) : isDonor && donorData ? (
           <div className="p-4 bg-green-50 border-l-4 border-green-500 rounded-md space-y-2">
             <div className="flex justify-between items-center">
@@ -185,7 +195,7 @@ function DashboardPage() {
         )}
       </section>
 
-      {/* My Blood Requests Section */}
+      {/* "My Posted Blood Requests" Section */}
       <section className="p-6 bg-white rounded-lg shadow-lg">
         <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold text-red-700">My Posted Blood Requests</h2>
@@ -197,6 +207,7 @@ function DashboardPage() {
             </Link>
         </div>
 
+        {/* Displays errors from actions like update/delete status */}
         {actionError && (
           <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 rounded-md text-center">
             {actionError}
@@ -209,8 +220,9 @@ function DashboardPage() {
           </div>
         )}
 
+        {/* Displays loading or error messages for fetching requests, or the list of requests */}
         {loadingMyRequests ? (
-          <LoadingSpinner message="Loading your requests..." /> // <--- UPDATED
+          <LoadingSpinner message="Loading your requests..." />
         ) : errorMyRequests ? (
           <p className="text-red-500 text-center">{errorMyRequests}</p>
         ) : myRequests.length === 0 ? (
@@ -231,6 +243,7 @@ function DashboardPage() {
                 <p className="text-sm text-gray-600">Urgency: {getUrgencyLabel(req.urgency)}</p>
                 <p className="text-xs text-gray-500 mt-1">Requested: {formatDate(req.requestedAt)}</p>
                 <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-2">
+                    {/* Action buttons for active requests */}
                     {req.status === 'active' && (
                         <>
                             <button
@@ -247,6 +260,7 @@ function DashboardPage() {
                             </button>
                         </>
                     )}
+                    {/* Delete button available for any of the user's own requests */}
                     <button 
                         onClick={() => handleDeleteRequest(req.id)}
                         className="px-3 py-1 text-xs font-medium text-white bg-red-500 hover:bg-red-700 rounded-md shadow-sm"

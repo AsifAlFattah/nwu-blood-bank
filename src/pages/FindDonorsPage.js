@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { db } from '../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import LoadingSpinner from '../components/LoadingSpinner'; // <--- IMPORT LoadingSpinner
+import LoadingSpinner from '../components/LoadingSpinner';
 
 function FindDonorsPage() {
   const [searchBloodGroup, setSearchBloodGroup] = useState('');
@@ -20,7 +20,7 @@ function FindDonorsPage() {
 
     if (!searchBloodGroup) {
       setError("Please select a blood group to search.");
-      setLoading(false); // Ensure loading is false if no search criteria
+      setLoading(false); 
       return;
     }
     setError(null);
@@ -74,10 +74,12 @@ function FindDonorsPage() {
               {bloodGroups.map(group => <option key={group} value={group}>{group}</option>)}
             </select>
           </div>
+          {/* Search button */}
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full sm:w-auto px-6 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+            // Updated button classes for primary action (blue)
+            className="w-full sm:w-auto px-6 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
             {loading ? 'Searching...' : 'Search'}
           </button>
@@ -85,7 +87,6 @@ function FindDonorsPage() {
 
         {error && <p className="text-sm text-red-600 text-center mb-4">{error}</p>}
         
-        {/* UPDATED LOADING DISPLAY */}
         {loading && <LoadingSpinner message="Searching for donors..." />} 
         
         {!loading && searched && donors.length === 0 && !error && searchBloodGroup && (

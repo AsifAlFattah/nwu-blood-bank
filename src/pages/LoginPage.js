@@ -1,6 +1,5 @@
 // src/pages/LoginPage.js
 import React, { useState } from 'react';
-// Import useLocation
 import { useNavigate, Link, useLocation } from 'react-router-dom'; 
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from "firebase/auth";
@@ -11,10 +10,10 @@ function LoginPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation(); // Get location object
+  const location = useLocation(); // Gets location object for redirection
 
-  // Determine where to redirect after login
-  // If 'state.from' exists, it means user was redirected from a protected route
+  // Determines where to redirect after login.
+  // If 'state.from' exists (passed from a protected route), redirects there, otherwise to dashboard.
   const from = location.state?.from?.pathname || "/dashboard";
 
   const handleLogin = async (e) => {
@@ -29,10 +28,11 @@ function LoginPage() {
       navigate(from, { replace: true }); // Navigate to 'from' location or dashboard
     } catch (err) {
       console.error("Error logging in user:", err);
+      // Provides a more user-friendly message for common authentication errors
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError("Invalid email or password. Please try again.");
       } else {
-        setError(err.message);
+        setError(err.message); // Shows other Firebase errors
       }
       setLoading(false);
     }
@@ -43,13 +43,13 @@ function LoginPage() {
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
         <h1 className="text-3xl font-bold text-center text-red-600">Sign In</h1>
         <form onSubmit={handleLogin} className="space-y-6">
-          {/* Email input */}
+          {/* Email input field */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               Email address
             </label>
             <input
-              id="email" // ... (rest of the input props remain the same) ...
+              id="email"
               name="email"
               type="email"
               autoComplete="email"
@@ -61,13 +61,13 @@ function LoginPage() {
             />
           </div>
 
-          {/* Password input */}
+          {/* Password input field */}
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Password
             </label>
             <input
-              id="password" // ... (rest of the input props remain the same) ...
+              id="password"
               name="password"
               type="password"
               autoComplete="current-password"
@@ -79,6 +79,7 @@ function LoginPage() {
             />
           </div>
 
+          {/* Displays login error messages */}
           {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
           {/* Submit button */}
@@ -86,7 +87,8 @@ function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+              // Updated button classes for primary action (blue)
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
               {loading ? 'Signing In...' : 'Sign In'}
             </button>

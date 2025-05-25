@@ -2,29 +2,29 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
-import { db } from '../firebase'; // Your Firestore instance
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; // Firestore functions
+import { db } from '../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 function PostRequestPage() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  const initialFormData = { // Define initial state for easy reset
+  const initialFormData = {
     patientName: '',
     requiredBloodGroup: '',
     unitsRequired: 1,
     hospitalName: '',
-    hospitalLocation: '',
+    hospitalLocation: '', // Optional field
     contactPerson: '',
     contactNumber: '',
     urgency: 'urgent',
-    additionalInfo: '',
+    additionalInfo: '', // Optional field
   };
 
   const [formData, setFormData] = useState(initialFormData);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState(''); // For success feedback
+  const [successMessage, setSuccessMessage] = useState('');
 
   const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
   const urgencyLevels = [
@@ -44,13 +44,14 @@ function PostRequestPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    setSuccessMessage(''); // Clear previous success message
+    setSuccessMessage('');
 
     if (!currentUser) {
       setError("You must be logged in to post a request.");
       return;
     }
 
+    // Basic form validation
     if (!formData.patientName || !formData.requiredBloodGroup || !formData.hospitalName || !formData.contactPerson || !formData.contactNumber) {
         setError("Please fill in all required fields: Patient Name, Blood Group, Hospital, Contact Person, and Contact Number.");
         return;
@@ -63,26 +64,23 @@ function PostRequestPage() {
     setLoading(true);
 
     try {
-      // Data to be saved to Firestore
       const requestData = {
-        userId: currentUser.uid, // ID of the user posting the request
-        userEmail: currentUser.email, // Email of the user posting
-        ...formData, // Spread the form data
-        status: 'active', // Default status for a new request
-        requestedAt: serverTimestamp(), // Firestore server timestamp
+        userId: currentUser.uid,
+        userEmail: currentUser.email,
+        ...formData,
+        status: 'active',
+        requestedAt: serverTimestamp(),
       };
 
-      // Add a new document to the "bloodRequests" collection
       const docRef = await addDoc(collection(db, "bloodRequests"), requestData);
       console.log("Blood request submitted with ID: ", docRef.id);
-
+      
       setSuccessMessage("Blood request submitted successfully!");
-      setFormData(initialFormData); // Reset form after successful submission
+      setFormData(initialFormData); // Reset form
 
-      // Optionally, navigate after a short delay to allow user to see success message
       setTimeout(() => {
-        setSuccessMessage(''); // Clear message before navigating
-        navigate('/dashboard'); // Or to a page that views requests (we'll build this later)
+        setSuccessMessage('');
+        navigate('/dashboard'); 
       }, 2000);
 
     } catch (err) {
@@ -93,20 +91,20 @@ function PostRequestPage() {
     }
   };
 
+  // Fallback if ProtectedRoute somehow doesn't catch this
   if (!currentUser) {
-    return <p className="p-4">Please log in to post a blood request.</p>;
+    return <p className="p-4 text-center">Please log in to post a blood request.</p>;
   }
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
       <div className="max-w-xl mx-auto bg-white p-6 md:p-8 rounded-lg shadow-xl">
         <h1 className="text-3xl font-bold text-center text-red-600 mb-8">Post a Blood Request</h1>
-
+        
         {successMessage && <p className="p-3 my-2 text-sm text-center text-green-700 bg-green-100 rounded-md">{successMessage}</p>}
         {error && <p className="p-3 my-2 text-sm text-center text-red-700 bg-red-100 rounded-md">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Form fields remain the same as before */}
           <div>
             <label htmlFor="patientName" className="block text-sm font-medium text-gray-700">Patient Name / Alias</label>
             <input type="text" name="patientName" id="patientName" required value={formData.patientName} onChange={handleChange}
@@ -135,7 +133,7 @@ function PostRequestPage() {
                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" />
           </div>
           <div>
-            <label htmlFor="hospitalLocation" className="block text-sm font-medium text-gray-700">Hospital Location / Address</label>
+            <label htmlFor="hospitalLocation" className="block text-sm font-medium text-gray-700">Hospital Location / Address (Optional)</label>
             <input type="text" name="hospitalLocation" id="hospitalLocation" value={formData.hospitalLocation} onChange={handleChange}
                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" />
           </div>
@@ -167,10 +165,11 @@ function PostRequestPage() {
                       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"></textarea>
           </div>
 
-
+          {/* Submit button */}
           <div>
             <button type="submit" disabled={loading}
-                    className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50">
+                    // Updated button classes for primary action (blue)
+                    className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50">
               {loading ? 'Submitting Request...' : 'Post Blood Request'}
             </button>
           </div>

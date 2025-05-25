@@ -15,7 +15,7 @@ function RegisterDonorPage() {
     contactNumber: '',
     isAvailable: true,
     lastDonationDate: '',
-    allowContactVisibility: false, // <--- Default to not visible
+    allowContactVisibility: false, // Default to not visible for privacy
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -41,6 +41,7 @@ function RegisterDonorPage() {
       return;
     }
 
+    // Basic form validation
     if (!formData.fullName || !formData.bloodGroup || !formData.contactNumber) {
       setError("Please fill in all required fields: Full Name, Blood Group, and Contact Number.");
       setLoading(false);
@@ -48,6 +49,7 @@ function RegisterDonorPage() {
     }
 
     try {
+      // Check if user is already registered as a donor
       const donorQuery = query(collection(db, "donors"), where("userId", "==", currentUser.uid));
       const querySnapshot = await getDocs(donorQuery);
       if (!querySnapshot.empty) {
@@ -56,21 +58,23 @@ function RegisterDonorPage() {
         return;
       }
 
+      // Save donor information to Firestore
       await addDoc(collection(db, "donors"), {
         userId: currentUser.uid,
-        email: currentUser.email,
-        fullName: formData.fullName, // Explicitly list fields for clarity
+        email: currentUser.email, // Storing email for easier reference if needed
+        fullName: formData.fullName,
         bloodGroup: formData.bloodGroup,
         contactNumber: formData.contactNumber,
         isAvailable: formData.isAvailable,
         lastDonationDate: formData.lastDonationDate,
-        allowContactVisibility: formData.allowContactVisibility, // <--- SAVE THIS
+        allowContactVisibility: formData.allowContactVisibility,
         registeredAt: serverTimestamp(),
       });
 
       console.log("Donor registered successfully with visibility preference!");
+      // Consider adding a success message state to display on page before redirect
       setLoading(false);
-      navigate('/dashboard');
+      navigate('/dashboard'); // Redirect to dashboard after successful registration
     } catch (err) {
       console.error("Error registering donor: ", err);
       setError("Failed to register donor. Please try again. " + err.message);
@@ -83,8 +87,6 @@ function RegisterDonorPage() {
       <div className="w-full max-w-lg p-8 space-y-6 bg-white rounded-lg shadow-md">
         <h1 className="text-3xl font-bold text-center text-red-600">Register as a Blood Donor</h1>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* ... Full Name, Blood Group, Contact Number, Last Donation Date fields ... */}
-          {/* (No changes to these fields, they remain as they were) */}
           <div>
             <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Full Name</label>
             <input type="text" name="fullName" id="fullName" required value={formData.fullName} onChange={handleChange}
@@ -118,8 +120,8 @@ function RegisterDonorPage() {
             <label htmlFor="isAvailable" className="ml-2 block text-sm text-gray-900">Currently available to donate</label>
           </div>
 
-          {/* --- NEW CHECKBOX FOR CONTACT VISIBILITY --- */}
-          <div className="flex items-start"> {/* items-start for better alignment if label wraps */}
+          {/* Checkbox for contact visibility consent */}
+          <div className="flex items-start">
             <div className="flex items-center h-5">
                 <input 
                     type="checkbox" 
@@ -134,14 +136,15 @@ function RegisterDonorPage() {
                 <p className="text-xs text-gray-500">Check this if you consent to your contact number being shown to logged-in users searching for donors.</p>
             </div>
           </div>
-          {/* --- END OF NEW CHECKBOX --- */}
 
-
+          {/* Displays registration error messages */}
           {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
+          {/* Submit button */}
           <div>
             <button type="submit" disabled={loading}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50">
+                    // Updated button classes for primary action (blue)
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50">
               {loading ? 'Submitting...' : 'Register as Donor'}
             </button>
           </div>

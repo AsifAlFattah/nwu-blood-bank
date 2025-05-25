@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { db } from '../firebase';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
-import LoadingSpinner from '../components/LoadingSpinner'; // <--- IMPORT LoadingSpinner
+import LoadingSpinner from '../components/LoadingSpinner';
 
 function EditDonorProfilePage() {
   const { currentUser } = useAuth();
@@ -57,7 +57,6 @@ function EditDonorProfilePage() {
           setLoading(false);
         }
       } else {
-        // No current user, set loading to false and perhaps show an error or redirect
         setLoading(false);
         setError("You must be logged in to edit a donor profile.");
       }
@@ -114,7 +113,6 @@ function EditDonorProfilePage() {
     }
   };
 
-  // --- UPDATED INITIAL LOADING DISPLAY ---
   if (loading) { 
     return <LoadingSpinner message="Loading donor profile..." size="lg" />;
   }
@@ -123,7 +121,6 @@ function EditDonorProfilePage() {
     return (
         <div className="p-4 text-center">
             <p className="text-red-600">{error}</p>
-            {/* Optionally, add a button to go back or to register if appropriate */}
             {error.includes("No donor profile found") && (
                  <button onClick={() => navigate('/register-donor')} className="mt-4 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded">
                     Register as Donor
@@ -136,7 +133,6 @@ function EditDonorProfilePage() {
     );
   }
   
-  // This case might not be hit if error above catches it, but good for explicit no profile
   if (!donorDocId && !loading && !error) { 
      return (
         <div className="p-4 text-center">
@@ -147,7 +143,6 @@ function EditDonorProfilePage() {
         </div>
     );
   }
-
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen-nav bg-gray-100 p-4 pt-10">
@@ -207,14 +202,17 @@ function EditDonorProfilePage() {
             </div>
           </div>
 
+          {/* Submit button */}
           <div>
             <button type="submit" disabled={updating}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50">
+                    // Updated button classes for primary action (blue)
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50">
               {updating ? 'Updating Profile...' : 'Save Changes'}
             </button>
           </div>
         </form>
         <div className="mt-4 text-center">
+            {/* "Back to Dashboard" button styled as a text link */}
             <button onClick={() => navigate('/dashboard')} className="text-sm text-red-600 hover:text-red-500">
                 Back to Dashboard
             </button>

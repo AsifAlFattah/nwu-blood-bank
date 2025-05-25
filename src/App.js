@@ -1,93 +1,33 @@
 // src/App.js
 import React from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom'; // Keep useNavigate if used, seems it is for handleLogout
+// We might not need Link and useNavigate here anymore if Navbar handles all nav actions
+import { Routes, Route } from 'react-router-dom'; 
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
-import ProtectedRoute from './components/ProtectedRoute'; // Ensure this is used for protected routes
+import ProtectedRoute from './components/ProtectedRoute';
 import RegisterDonorPage from './pages/RegisterDonorPage';
 import EditDonorProfilePage from './pages/EditDonorProfilePage';
 import FindDonorsPage from './pages/FindDonorsPage'; 
 import PostRequestPage from './pages/PostRequestPage';
 import ViewRequestsPage from './pages/ViewRequestsPage';
+import Navbar from './components/Navbar'; // <--- IMPORT your new Navbar component
 
-import { useAuth } from './AuthContext';
-import { auth } from './firebase';
-import { signOut } from 'firebase/auth';
+// useAuth, auth, signOut, and useNavigate for logout are now handled within Navbar.js
+// So, we can remove them from App.js if they are not used for other purposes here.
 
 function App() {
-  const { currentUser } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      console.log("User signed out successfully");
-      navigate('/login');
-    } catch (error) {
-      console.error("Error signing out: ", error);
-    }
-  };
+  // currentUser and handleLogout are no longer needed directly in App.js
+  // as Navbar.js will use useAuth() and define its own handleLogout.
 
   return (
-    <div className="App min-h-screen bg-gray-100">
-      <nav className="bg-red-600 p-4 text-white shadow-md">
-        <ul className="container mx-auto flex justify-between items-center">
-          {/* Left side of Navbar */}
-          <div className="flex space-x-4 items-center">
-            <li>
-              <Link to="/" className="hover:text-red-200 font-semibold text-lg">NWU Blood Bank</Link>
-            </li>
-            <li>
-              <Link to="/" className="hover:text-red-200">Home</Link>
-            </li>
-            {/* Add Find Donors link if user is logged in */}
-            {currentUser && (
-              <>
-                <li>
-                    <Link to="/find-donors" className="hover:text-red-200">Find Donors</Link>
-                </li>
-                <li> {/* <--- ADD LINK TO POST REQUEST */}
-                    <Link to="/post-request" className="hover:text-red-200">Post Request</Link>
-                </li>
-                <li> {/* <--- ADD LINK TO VIEW REQUESTS */}
-                    <Link to="/view-requests" className="hover:text-red-200">View Requests</Link>
-                </li>
-              </>
-            )}
-          </div>
-
-          {/* Right side of Navbar */}
-          <div className="flex space-x-4 items-center">
-            {currentUser ? (
-              <>
-                <li>
-                  <Link to="/dashboard" className="hover:text-red-200">Dashboard</Link>
-                </li>
-                <li>
-                  <button
-                    onClick={handleLogout}
-                    className="hover:text-red-200 bg-transparent border-none p-0 text-white"
-                  >
-                    Logout ({currentUser.email.split('@')[0]})
-                  </button>
-                </li>
-              </>
-            ) : (
-              <>
-                <li>
-                  <Link to="/login" className="hover:text-red-200">Login</Link>
-                </li>
-                <li>
-                  <Link to="/register" className="hover:text-red-200">Register</Link>
-                </li>
-              </>
-            )}
-          </div>
-        </ul>
-      </nav>
-
+    // Added pt-16 (padding-top: 4rem) to account for the sticky navbar's height (h-16 = 4rem)
+    // Adjust this value if your navbar height is different.
+    <div className="App min-h-screen bg-gray-100 pt-0"> 
+      <Navbar /> {/* <--- USE the new Navbar component here */}
+      
+      {/* The main content area */}
       <div className="container mx-auto p-4">
         <Routes>
           <Route path="/" element={<HomePage />} />
