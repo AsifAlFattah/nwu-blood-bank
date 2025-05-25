@@ -1,8 +1,9 @@
 // src/pages/RegisterPage.js
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom'; // Added Link import
-import { auth } from '../firebase'; 
+import { auth, db } from '../firebase'; 
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -26,7 +27,21 @@ function RegisterPage() {
     try {
       // Create user with Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log("User registered successfully:", userCredential.user);
+      const user = userCredential.user;
+      console.log("User registered with Firebase Auth:", user);
+
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid); // Use user's UID as document ID
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          role: 'user', // Default role for new users
+          createdAt: serverTimestamp(),
+          // You can add other default fields here if needed
+        });
+        console.log("User document created in Firestore 'users' collection");
+      }
+
       // Note: Additional user profile information (name, blood group etc.) 
       // would typically be saved to Firestore in a separate step after successful auth registration.
       setLoading(false);
