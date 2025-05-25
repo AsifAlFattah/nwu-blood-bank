@@ -1,51 +1,76 @@
 // src/pages/ViewRequestsPage.js
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebase'; // Your Firestore instance
-import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore'; // Firestore functions
-import { Link } from 'react-router-dom'; // For linking to post request page if no requests
+import { db } from '../firebase';
+import { collection, query, where, orderBy, getDocs, Timestamp, doc, updateDoc } from 'firebase/firestore'; // Added doc, updateDoc
+import { Link } from 'react-router-dom';
+import { useAuth } from '../AuthContext'; // <--- IMPORT useAuth
 
 function ViewRequestsPage() {
+  const { currentUser } = useAuth(); // <--- GET currentUser
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // No need for a new 'updating' state here yet, can add if complex feedback is needed per item
+
+  const fetchActiveRequests = async () => { // Encapsulated fetch logic
+    setLoading(true);
+    setError(null);
+    try {
+      const requestsRef = collection(db, "bloodRequests");
+      const q = query(
+        requestsRef,
+        where("status", "==", "active"),
+        orderBy("requestedAt", "desc")
+      );
+
+      const querySnapshot = await getDocs(q);
+      const activeRequests = [];
+      querySnapshot.forEach((doc) => {
+        activeRequests.push({ id: doc.id, ...doc.data() });
+      });
+      setRequests(activeRequests);
+    } catch (err) {
+      console.error("Error fetching active blood requests: ", err);
+      setError("Failed to fetch blood requests. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchActiveRequests = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const requestsRef = collection(db, "bloodRequests");
-        // Query for active requests, ordered by most recent first
-        const q = query(
-          requestsRef,
-          where("status", "==", "active"),
-          orderBy("requestedAt", "desc")
-        );
-
-        const querySnapshot = await getDocs(q);
-        const activeRequests = [];
-        querySnapshot.forEach((doc) => {
-          activeRequests.push({ id: doc.id, ...doc.data() });
-        });
-
-        setRequests(activeRequests);
-        if (activeRequests.length === 0) {
-          console.log("No active blood requests found.");
-        } else {
-          console.log("Fetched active requests:", activeRequests);
-        }
-      } catch (err) {
-        console.error("Error fetching active blood requests: ", err);
-        setError("Failed to fetch blood requests. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchActiveRequests();
-  }, []); // Empty dependency array to run once on mount
+  }, []);
 
-  // Helper function to format Firestore Timestamp
+  const handleUpdateRequestStatus = async (requestId, newStatus) => {
+    if (!currentUser) {
+      console.error("User not logged in.");
+      // setError("You must be logged in to update status."); // Or some other feedback
+      return;
+    }
+
+    // Optional: Add a confirmation dialog here
+    // if (!window.confirm(`Are you sure you want to mark this request as ${newStatus}?`)) {
+    //   return;
+    // }
+
+    try {
+      const requestDocRef = doc(db, "bloodRequests", requestId);
+      await updateDoc(requestDocRef, {
+        status: newStatus
+      });
+      console.log(`Request ${requestId} status updated to ${newStatus}`);
+      // Refresh the list of active requests to reflect the change
+      fetchActiveRequests(); 
+      // Or, for more immediate UI update without re-fetch, filter out the updated request:
+      // setRequests(prevRequests => prevRequests.filter(req => req.id !== requestId));
+    } catch (err) {
+      console.error(`Error updating request status for ${requestId}: `, err);
+      // setError(`Failed to update status for request ${requestId}.`); // Or item-specific error
+      alert(`Failed to update request status. Please try again.`); // Simple alert for now
+    }
+  };
+
+
   const formatDate = (timestamp) => {
     if (timestamp instanceof Timestamp) {
       return timestamp.toDate().toLocaleDateString('en-US', {
@@ -55,7 +80,6 @@ function ViewRequestsPage() {
     return 'Date not available';
   };
 
-  // Helper function to get urgency label
   const getUrgencyLabel = (urgencyValue) => {
     const urgencyMap = {
         'urgent': 'Urgent (Immediate Need)',
@@ -64,7 +88,6 @@ function ViewRequestsPage() {
     };
     return urgencyMap[urgencyValue] || urgencyValue;
   };
-
 
   if (loading) {
     return <p className="p-4 text-center text-gray-600">Loading active blood requests...</p>;
@@ -113,6 +136,26 @@ function ViewRequestsPage() {
                   {req.additionalInfo && <p><strong>Additional Info:</strong> {req.additionalInfo}</p>}
                   <p className="text-xs text-gray-500 pt-1">Requested by: {req.userEmail} on {formatDate(req.requestedAt)}</p>
                 </div>
+
+                {/* --- ACTION BUTTONS FOR REQUEST OWNER --- */}
+                {currentUser && currentUser.uid === req.userId && req.status === 'active' && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 flex flex-wrap gap-3">
+                    <button
+                      onClick={() => handleUpdateRequestStatus(req.id, 'fulfilled')}
+                      className="px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    >
+                      Mark as Fulfilled
+                    </button>
+                    <button
+                      onClick={() => handleUpdateRequestStatus(req.id, 'cancelled')}
+                      className="px-4 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                    >
+                      Mark as Cancelled
+                    </button>
+                    {/* We can add a delete button here later if needed */}
+                  </div>
+                )}
+                {/* --- END OF ACTION BUTTONS --- */}
               </li>
             ))}
           </ul>
