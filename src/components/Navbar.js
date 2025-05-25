@@ -101,7 +101,7 @@ function Navbar() {
                 <NavLink to="/view-requests">View Requests</NavLink>
                 <NavLink to="/dashboard">Dashboard</NavLink>
                 {userRole === 'admin' && ( // Admin link, visible only if userRole is 'admin'
-                  <NavLink to="/admin/dashboard">Admin</NavLink>
+                  <NavLink to="/admin">Admin</NavLink>
                 )}
               </>
             )}
@@ -144,7 +144,7 @@ function Navbar() {
                 <NavLink to="/view-requests">View Requests</NavLink>
                 <NavLink to="/dashboard">Dashboard</NavLink>
                 {userRole === 'admin' && ( // Admin link in mobile menu
-                  <NavLink to="/admin/dashboard">Admin Panel</NavLink>
+                  <NavLink to="/admin">Admin Panel</NavLink>
                 )}
                 <NavLink 
                     isButton={true}
