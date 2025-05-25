@@ -12,7 +12,9 @@ import FindDonorsPage from './pages/FindDonorsPage';
 import PostRequestPage from './pages/PostRequestPage';
 import ViewRequestsPage from './pages/ViewRequestsPage';
 import Navbar from './components/Navbar'; 
-import Footer from './components/Footer'; // Import the Footer component
+import Footer from './components/Footer'; 
+import AdminRoute from './components/AdminRoute';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 
 // Note: Authentication-related hooks (useAuth, useNavigate) and functions (signOut) 
 // are now primarily managed within components like Navbar.js, LoginPage.js, etc.
@@ -56,7 +58,17 @@ function App() {
             path="/view-requests" 
             element={<ProtectedRoute><ViewRequestsPage /></ProtectedRoute>}
           />
+          {/* Admin Routes */}
+          <Route 
+            path="/admin/dashboard" // Or just "/admin"
+            element={
+              <AdminRoute>
+                <AdminDashboardPage />
+              </AdminRoute>
+            } 
+          />
         </Routes>
+        
       </main>
       
       <Footer /> {/* Footer component placed after the main content */}

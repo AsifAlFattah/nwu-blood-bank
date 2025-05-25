@@ -1,42 +1,59 @@
+// src/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth } from './firebase'; // Your Firebase auth instance
+import { auth, db } from './firebase'; // Import db
 import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore'; // Import doc and getDoc
 
-// Create the AuthContext
 const AuthContext = createContext();
 
-// Custom hook to use the AuthContext
 export function useAuth() {
   return useContext(AuthContext);
 }
 
-// AuthProvider component
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true); // To handle initial auth state check
+  const [userRole, setUserRole] = useState(null); // NEW: State for user role
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Firebase's onAuthStateChanged listener
-    // This unsubscribe function will be returned and called when the component unmounts
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user); // user will be null if not logged in, or the user object if logged in
-      setLoading(false); // Done checking auth state
+    const unsubscribe = onAuthStateChanged(auth, async (user) => { // Make async
+      setCurrentUser(user);
+      if (user) {
+        // User is signed in, try to fetch their role from Firestore
+        const userDocRef = doc(db, "users", user.uid);
+        try {
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            setUserRole(userDocSnap.data().role); // Assuming role is stored in 'role' field
+            console.log("User role fetched:", userDocSnap.data().role);
+          } else {
+            // User document doesn't exist in 'users' collection, so no specific role
+            setUserRole(null); 
+            console.log("No user document found in 'users' collection for role.");
+          }
+        } catch (error) {
+            console.error("Error fetching user role:", error);
+            setUserRole(null); // Default to no role on error
+        }
+      } else {
+        // User is signed out
+        setUserRole(null);
+      }
+      setLoading(false);
     });
 
-    // Cleanup subscription on unmount
     return unsubscribe;
-  }, []); // Empty dependency array means this effect runs once on mount and cleanup on unmount
+  }, []);
 
   const value = {
     currentUser,
-    // You can add more auth-related functions here if needed, e.g., login, logout, register
-    // For now, we'll keep it simple with just currentUser
+    userRole, // NEW: Provide userRole in the context
+    loadingAuth: loading, // Renamed loading to be more specific
   };
 
-  // Don't render children until initial auth check is complete to avoid flickering
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {!loading && children} 
     </AuthContext.Provider>
   );
 }
