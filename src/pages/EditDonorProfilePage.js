@@ -1,22 +1,21 @@
 // src/pages/EditDonorProfilePage.js
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+import { useNavigate, Link } from 'react-router-dom'; // Added Link for consistency if needed
+import { useAuth } from '../AuthContext'; // useAuth will provide currentUser and isEmailVerified
 import { db } from '../firebase';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 function EditDonorProfilePage() {
-  const { currentUser } = useAuth();
+  // Destructure isEmailVerified from useAuth
+  const { currentUser, isEmailVerified } = useAuth(); 
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     fullName: '',
-    // University specific fields
-    universityId: '',        // NEW
-    universityRole: '',      // NEW
-    department: '',          // NEW
-    // Existing fields
+    universityId: '',
+    universityRole: '',
+    department: '',
     bloodGroup: '',
     contactNumber: '',
     isAvailable: true,
@@ -25,13 +24,13 @@ function EditDonorProfilePage() {
   });
   const [donorDocId, setDonorDocId] = useState(null);
   const [loading, setLoading] = useState(true); // For initial data load
-  const [updating, setUpdating] = useState(false); // For submission load
+  const [updating, setUpdating] = useState(false); // For form submission load
   const [error, setError] = useState(null); // For data fetching errors
   const [formError, setFormError] = useState(null); // For form submission errors
   const [successMessage, setSuccessMessage] = useState('');
 
   const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
-  const universityRoles = [ // NEW: Options for the role dropdown
+  const universityRoles = [
     { value: 'student', label: 'Student' },
     { value: 'faculty', label: 'Faculty (Teacher/Professor)' },
     { value: 'staff', label: 'Staff / Employee' },
@@ -41,6 +40,9 @@ function EditDonorProfilePage() {
   useEffect(() => {
     const fetchDonorData = async () => {
       if (currentUser) {
+        // Only proceed if email is verified (or if you want to allow viewing but not saving)
+        // For now, we'll let it load the data, but handleSubmit will check verification.
+        // Alternatively, you could block loading here too if !isEmailVerified.
         setLoading(true);
         setError(null);
         const donorQuery = query(collection(db, "donors"), where("userId", "==", currentUser.uid));
@@ -50,12 +52,11 @@ function EditDonorProfilePage() {
             const donorDoc = querySnapshot.docs[0];
             setDonorDocId(donorDoc.id);
             const data = donorDoc.data();
-            // Set form data with fetched values, including new university fields
             setFormData({
               fullName: data.fullName || '',
-              universityId: data.universityId || '',        // NEW
-              universityRole: data.universityRole || '',      // NEW
-              department: data.department || '',          // NEW
+              universityId: data.universityId || '',
+              universityRole: data.universityRole || '',
+              department: data.department || '',
               bloodGroup: data.bloodGroup || '',
               contactNumber: data.contactNumber || '',
               isAvailable: data.isAvailable !== undefined ? data.isAvailable : true,
@@ -72,6 +73,7 @@ function EditDonorProfilePage() {
           setLoading(false);
         }
       } else {
+        // No current user
         setLoading(false);
         setError("You must be logged in to edit a donor profile.");
       }
@@ -91,6 +93,18 @@ function EditDonorProfilePage() {
     e.preventDefault();
     setFormError(null);
     setSuccessMessage('');
+
+    if (!currentUser) { // Should be caught by ProtectedRoute, but good check
+        setFormError("You must be logged in to save changes.");
+        return;
+    }
+
+    // NEW: Check if email is verified before allowing submission
+    if (!isEmailVerified) {
+      setFormError("Please verify your email address before updating your donor profile. Check your inbox for a verification link.");
+      return;
+    }
+
     setUpdating(true);
 
     if (!donorDocId) {
@@ -99,7 +113,7 @@ function EditDonorProfilePage() {
       return;
     }
 
-    // Updated validation to include new required university fields
+    // Form validation
     if (!formData.fullName || !formData.universityId || !formData.universityRole || !formData.department || !formData.bloodGroup || !formData.contactNumber) {
       setFormError("Please fill in all required fields: Full Name, University ID, Role, Department, Blood Group, and Contact Number.");
       setUpdating(false);
@@ -108,18 +122,16 @@ function EditDonorProfilePage() {
 
     try {
       const donorDocRef = doc(db, "donors", donorDocId);
-      // Include new university fields in the data to update
       await updateDoc(donorDocRef, {
         fullName: formData.fullName,
-        universityId: formData.universityId,        // NEW
-        universityRole: formData.universityRole,    // NEW
-        department: formData.department,            // NEW
+        universityId: formData.universityId,
+        universityRole: formData.universityRole,
+        department: formData.department,
         bloodGroup: formData.bloodGroup,
         contactNumber: formData.contactNumber,
         isAvailable: formData.isAvailable,
         lastDonationDate: formData.lastDonationDate,
         allowContactVisibility: formData.allowContactVisibility,
-        // registeredAt and email typically don't change on profile edit
       });
       setSuccessMessage("Profile updated successfully!");
       console.log("Donor profile updated!");
@@ -157,6 +169,7 @@ function EditDonorProfilePage() {
   }
   
   // If no donor document ID found after loading (and no error occurred to show above)
+  // This also implies the user is logged in because of ProtectedRoute
   if (!donorDocId && !loading && !error) { 
      return (
         <div className="p-4 text-center">
@@ -164,6 +177,27 @@ function EditDonorProfilePage() {
             <button onClick={() => navigate('/register-donor')} className="mt-4 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded">
                 Register as Donor
             </button>
+        </div>
+    );
+  }
+
+  // NEW: If user is logged in but email is not verified, show a message instead of the form
+  if (currentUser && !isEmailVerified) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen-nav bg-gray-100 p-4">
+            <div className="w-full max-w-lg p-8 text-center bg-white rounded-lg shadow-md">
+                <h1 className="text-2xl font-semibold text-red-600 mb-4">Email Verification Required</h1>
+                <p className="text-gray-700 mb-2">
+                    Please verify your email address to edit your donor profile.
+                </p>
+                <p className="text-gray-600 text-sm">
+                    A verification link was sent to <strong>{currentUser.email}</strong> when you created your account.
+                    If you haven't received it, check your spam folder or use the "Resend Email" option in the banner at the top of the page.
+                </p>
+                <button onClick={() => navigate('/dashboard')} className="mt-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">
+                    Back to Dashboard
+                </button>
+            </div>
         </div>
     );
   }
@@ -258,8 +292,13 @@ function EditDonorProfilePage() {
 
           {/* Submit button */}
           <div>
-            <button type="submit" disabled={updating}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50">
+            <button 
+                type="submit" 
+                // Button is disabled if updating OR if email is not verified (though form is hidden in that case)
+                disabled={updating || (currentUser && !isEmailVerified)} 
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={currentUser && !isEmailVerified ? "Please verify your email to update your profile." : ""}
+            >
               {updating ? 'Updating Profile...' : 'Save Changes'}
             </button>
           </div>

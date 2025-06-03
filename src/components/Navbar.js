@@ -1,11 +1,11 @@
 // src/components/Navbar.js
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext'; // Provides currentUser and userRole
-import { auth } from '../firebase';      // Firebase auth instance for signOut
-import { signOut } from 'firebase/auth'; // Firebase signOut function
+import { useAuth } from '../AuthContext'; // Provides currentUser, userRole, isEmailVerified, resendVerificationEmail
+import { auth } from '../firebase';
+import { signOut } from 'firebase/auth';
 
-// Reusable HamburgerIcon component for mobile menu toggle
+// Reusable HamburgerIcon component
 const HamburgerIcon = ({ onClick }) => (
   <button onClick={onClick} className="text-white focus:outline-none md:hidden p-2 -mr-2" aria-label="Open menu">
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -14,7 +14,7 @@ const HamburgerIcon = ({ onClick }) => (
   </button>
 );
 
-// Reusable CloseIcon component for mobile menu toggle
+// Reusable CloseIcon component
 const CloseIcon = ({ onClick }) => (
     <button onClick={onClick} className="text-white focus:outline-none md:hidden p-2 -mr-2" aria-label="Close menu">
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -25,42 +25,60 @@ const CloseIcon = ({ onClick }) => (
 
 // Main Navbar component
 function Navbar() {
-  const { currentUser, userRole } = useAuth(); // Get current user and their role
+  // Destructure necessary values from AuthContext
+  const { currentUser, userRole, isEmailVerified, resendVerificationEmail } = useAuth(); 
   const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu visibility
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState(''); // For feedback on resending email
 
   // Handles user logout
   const handleLogout = async () => {
-    setIsMobileMenuOpen(false); // Ensure mobile menu closes on logout
+    setIsMobileMenuOpen(false); 
     try {
       await signOut(auth);
       console.log("User signed out successfully");
-      navigate('/login'); // Redirect to login page after logout
+      navigate('/login'); 
     } catch (error) {
       console.error("Error signing out: ", error);
     }
   };
 
-  // Toggles the visibility of the mobile menu
+  // Toggles the mobile menu visibility
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
   
-  // Closes the mobile menu, typically used when a mobile nav link is clicked
+  // Closes the mobile menu
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
   }
 
-  // Reusable NavLink component for consistent styling and behavior (closes mobile menu on click)
-  // Renders as a Link or a button based on the 'isButton' prop
-  const NavLink = ({ to, children, isButton = false, onClick }) => {
-    const commonClasses = "px-3 py-2 rounded-md text-sm font-medium"; // Base styling for links/buttons
-    const interactiveClasses = "text-red-100 hover:bg-red-700 hover:text-white"; // Hover/active states
+  // Handles resending the verification email
+  const handleResendVerification = async () => {
+    setVerificationMessage(''); // Clear previous message
+    if (resendVerificationEmail) { // Check if function exists
+        const success = await resendVerificationEmail();
+        if (success) {
+        setVerificationMessage("Verification email resent! Please check your inbox (and spam folder).");
+        } else {
+        setVerificationMessage("Failed to resend verification email. You may have resent too recently, or an error occurred.");
+        }
+    } else {
+        setVerificationMessage("Resend function not available. Please try again later.");
+    }
+    // Clear message after a few seconds
+    setTimeout(() => setVerificationMessage(''), 7000);
+  };
 
-    if (isButton) { // For logout or other button-like actions in the nav
+  // Reusable NavLink component for consistent styling and behavior
+  const NavLink = ({ to, children, isButton = false, onClick }) => {
+    const commonClasses = "px-3 py-2 rounded-md text-sm font-medium";
+    const interactiveClasses = "text-red-100 hover:bg-red-700 hover:text-white";
+
+    if (isButton) {
         return (
             <button
-                onClick={onClick} // Use passed onClick (e.g., handleLogout)
+                onClick={onClick}
                 className={`${commonClasses} ${interactiveClasses} block w-full text-left md:w-auto`}
             >
                 {children}
@@ -71,8 +89,8 @@ function Navbar() {
     return (
       <Link 
         to={to} 
-        className={`${commonClasses} ${interactiveClasses} block md:inline-block`} // 'block' for mobile, 'md:inline-block' for desktop
-        onClick={closeMobileMenu} // Close mobile menu when a link is clicked
+        className={`${commonClasses} ${interactiveClasses} block md:inline-block`}
+        onClick={closeMobileMenu}
       >
         {children}
       </Link>
@@ -80,90 +98,103 @@ function Navbar() {
   };
 
   return (
-    <nav className="bg-red-700 shadow-lg sticky top-0 z-50"> {/* Main navbar container, sticky at the top */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8"> {/* Responsive container for content */}
-        <div className="flex items-center justify-between h-16"> {/* Fixed height for the navbar */}
-          
-          {/* Logo / Brand Name - always visible */}
-          <div className="flex-shrink-0">
-            <Link to="/" className="text-white font-bold text-xl hover:text-red-200" onClick={closeMobileMenu}>
-              NWU Blood Bank
-            </Link>
-          </div>
+    <> {/* Using React.Fragment to wrap Navbar and potential Banner */}
+      <nav className="bg-red-700 shadow-lg sticky top-0 z-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex-shrink-0">
+              <Link to="/" className="text-white font-bold text-xl hover:text-red-200" onClick={closeMobileMenu}>
+                NWU Blood Bank
+              </Link>
+            </div>
 
-          {/* Desktop Menu Links - hidden on small screens, visible on medium and up */}
-          <div className="hidden md:flex items-center space-x-3"> {/* Horizontal spacing for desktop links */}
-            <NavLink to="/">Home</NavLink>
-            {currentUser && ( // Links visible only when a user is logged in
-              <>
-                <NavLink to="/find-donors">Find Donors</NavLink>
-                <NavLink to="/post-request">Post Request</NavLink>
-                <NavLink to="/view-requests">View Requests</NavLink>
-                <NavLink to="/dashboard">Dashboard</NavLink>
-                {userRole === 'admin' && ( // Admin link, visible only if userRole is 'admin'
-                  <NavLink to="/admin">Admin</NavLink>
-                )}
-              </>
-            )}
-            {!currentUser && ( // Links visible only when no user is logged in
-              <>
-                <NavLink to="/login">Login</NavLink>
-                <NavLink to="/register">Register</NavLink>
-              </>
-            )}
-            {/* Logout button for desktop, visible only when a user is logged in */}
-            {currentUser && (
-                 <NavLink 
-                    isButton={true}
-                    onClick={handleLogout} // Uses the NavLink styled as a button
-                >
-                  Logout ({currentUser.email.split('@')[0]})
-                </NavLink>
-            )}
-          </div>
+            {/* Desktop Menu Links */}
+            <div className="hidden md:flex items-center space-x-3">
+              <NavLink to="/">Home</NavLink>
+              {currentUser && (
+                <>
+                  <NavLink to="/find-donors">Find Donors</NavLink>
+                  <NavLink to="/post-request">Post Request</NavLink>
+                  <NavLink to="/view-requests">View Requests</NavLink>
+                  <NavLink to="/dashboard">Dashboard</NavLink>
+                  {userRole === 'admin' && (
+                    <NavLink to="/admin/overview">Admin Panel</NavLink> 
+                  )}
+                </>
+              )}
+              {!currentUser && (
+                <>
+                  <NavLink to="/login">Login</NavLink>
+                  <NavLink to="/register">Register</NavLink>
+                </>
+              )}
+              {currentUser && (
+                   <NavLink 
+                      isButton={true}
+                      onClick={handleLogout}
+                  >
+                    Logout ({currentUser.email.split('@')[0]})
+                  </NavLink>
+              )}
+            </div>
 
-          {/* Mobile Menu Button - visible only on small screens */}
-          <div className="md:hidden flex items-center">
-            {isMobileMenuOpen ? 
-              <CloseIcon onClick={toggleMobileMenu} /> : 
-              <HamburgerIcon onClick={toggleMobileMenu} />
-            }
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center">
+              {isMobileMenuOpen ? 
+                <CloseIcon onClick={toggleMobileMenu} /> : 
+                <HamburgerIcon onClick={toggleMobileMenu} />
+              }
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Mobile Menu - shown/hidden based on isMobileMenuOpen state, only on small screens */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden absolute bg-red-700 w-full shadow-lg py-2 z-40"> {/* Full width dropdown */}
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3"> {/* Padding and spacing for mobile links */}
-            <NavLink to="/">Home</NavLink>
-            {currentUser && ( // Links for logged-in users
-              <>
-                <NavLink to="/find-donors">Find Donors</NavLink>
-                <NavLink to="/post-request">Post Request</NavLink>
-                <NavLink to="/view-requests">View Requests</NavLink>
-                <NavLink to="/dashboard">Dashboard</NavLink>
-                {userRole === 'admin' && ( // Admin link in mobile menu
-                  <NavLink to="/admin">Admin Panel</NavLink>
-                )}
-                <NavLink 
-                    isButton={true}
-                    onClick={handleLogout} // Logout button for mobile
-                >
-                  Logout ({currentUser.email.split('@')[0]})
-                </NavLink>
-              </>
-            )}
-            {!currentUser && ( // Links for non-logged-in users
-              <>
-                <NavLink to="/login">Login</NavLink>
-                <NavLink to="/register">Register</NavLink>
-              </>
-            )}
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute bg-red-700 w-full shadow-lg py-2 z-40">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+              <NavLink to="/">Home</NavLink>
+              {currentUser && (
+                <>
+                  <NavLink to="/find-donors">Find Donors</NavLink>
+                  <NavLink to="/post-request">Post Request</NavLink>
+                  <NavLink to="/view-requests">View Requests</NavLink>
+                  <NavLink to="/dashboard">Dashboard</NavLink>
+                  {userRole === 'admin' && (
+                    <NavLink to="/admin/overview">Admin Panel</NavLink> 
+                  )}
+                  <NavLink 
+                      isButton={true}
+                      onClick={handleLogout}
+                  >
+                    Logout ({currentUser.email.split('@')[0]})
+                  </NavLink>
+                </>
+              )}
+              {!currentUser && (
+                <>
+                  <NavLink to="/login">Login</NavLink>
+                  <NavLink to="/register">Register</NavLink>
+                </>
+              )}
+            </div>
           </div>
+        )}
+      </nav>
+      
+      {/* Email Verification Banner */}
+      {currentUser && !isEmailVerified && (
+        <div className="bg-yellow-400 text-yellow-900 text-center p-3 text-sm sticky top-16 z-30 shadow-md"> {/* top-16 assumes h-16 navbar */}
+          Your email address is not verified. Please check your inbox (and spam folder) for a verification link.
+          <button 
+            onClick={handleResendVerification}
+            className="ml-3 font-semibold underline hover:text-yellow-700 focus:outline-none"
+          >
+            Resend Verification Email
+          </button>
+          {verificationMessage && <p className="mt-1 text-xs font-medium">{verificationMessage}</p>}
         </div>
       )}
-    </nav>
+    </>
   );
 }
 

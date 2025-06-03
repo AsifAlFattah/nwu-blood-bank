@@ -1,12 +1,13 @@
 // src/pages/PostRequestPage.js
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+import { useNavigate, Link } from 'react-router-dom'; // Added Link for consistency if needed
+import { useAuth } from '../AuthContext'; // useAuth will provide currentUser and isEmailVerified
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 function PostRequestPage() {
-  const { currentUser } = useAuth();
+  // Destructure isEmailVerified from useAuth
+  const { currentUser, isEmailVerified } = useAuth(); 
   const navigate = useNavigate();
 
   const initialFormData = {
@@ -46,22 +47,30 @@ function PostRequestPage() {
     setError(null);
     setSuccessMessage('');
 
-    if (!currentUser) {
+    if (!currentUser) { // Should be caught by ProtectedRoute, but good check
       setError("You must be logged in to post a request.");
       return;
     }
 
+    // NEW: Check if email is verified before allowing submission
+    if (!isEmailVerified) {
+      setError("Please verify your email address before posting a blood request. Check your inbox for a verification link.");
+      return;
+    }
+    
+    setLoading(true); // Set loading true only after passing initial checks
+
     // Basic form validation
     if (!formData.patientName || !formData.requiredBloodGroup || !formData.hospitalName || !formData.contactPerson || !formData.contactNumber) {
         setError("Please fill in all required fields: Patient Name, Blood Group, Hospital, Contact Person, and Contact Number.");
+        setLoading(false);
         return;
     }
     if (formData.unitsRequired < 1) {
         setError("Units required must be at least 1.");
+        setLoading(false);
         return;
     }
-
-    setLoading(true);
 
     try {
       const requestData = {
@@ -80,7 +89,7 @@ function PostRequestPage() {
 
       setTimeout(() => {
         setSuccessMessage('');
-        navigate('/dashboard'); 
+        navigate('/dashboard'); // Or to /view-requests
       }, 2000);
 
     } catch (err) {
@@ -96,6 +105,27 @@ function PostRequestPage() {
     return <p className="p-4 text-center">Please log in to post a blood request.</p>;
   }
 
+  // NEW: If user is logged in but email is not verified, show a message instead of the form
+  if (currentUser && !isEmailVerified) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen-nav bg-gray-100 p-4">
+            <div className="w-full max-w-xl p-8 text-center bg-white rounded-lg shadow-xl">
+                <h1 className="text-2xl font-semibold text-red-600 mb-4">Email Verification Required</h1>
+                <p className="text-gray-700 mb-2">
+                    Please verify your email address to post a blood request.
+                </p>
+                <p className="text-gray-600 text-sm">
+                    A verification link was sent to <strong>{currentUser.email}</strong> when you created your account.
+                    If you haven't received it, check your spam folder or use the "Resend Email" option in the banner at the top of the page.
+                </p>
+                <button onClick={() => navigate('/dashboard')} className="mt-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">
+                    Back to Dashboard
+                </button>
+            </div>
+        </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 lg:p-8">
       <div className="max-w-xl mx-auto bg-white p-6 md:p-8 rounded-lg shadow-xl">
@@ -105,12 +135,14 @@ function PostRequestPage() {
         {error && <p className="p-3 my-2 text-sm text-center text-red-700 bg-red-100 rounded-md">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Patient Name / Alias */}
           <div>
             <label htmlFor="patientName" className="block text-sm font-medium text-gray-700">Patient Name / Alias</label>
             <input type="text" name="patientName" id="patientName" required value={formData.patientName} onChange={handleChange}
                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" />
           </div>
 
+          {/* Required Blood Group & Units Required */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <label htmlFor="requiredBloodGroup" className="block text-sm font-medium text-gray-700">Required Blood Group</label>
@@ -127,6 +159,7 @@ function PostRequestPage() {
             </div>
           </div>
 
+          {/* Hospital Name & Location */}
           <div>
             <label htmlFor="hospitalName" className="block text-sm font-medium text-gray-700">Hospital Name</label>
             <input type="text" name="hospitalName" id="hospitalName" required value={formData.hospitalName} onChange={handleChange}
@@ -138,6 +171,7 @@ function PostRequestPage() {
                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm" />
           </div>
 
+          {/* Contact Person & Number */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <label htmlFor="contactPerson" className="block text-sm font-medium text-gray-700">Contact Person (for this request)</label>
@@ -151,6 +185,7 @@ function PostRequestPage() {
             </div>
           </div>
 
+          {/* Urgency Level */}
           <div>
             <label htmlFor="urgency" className="block text-sm font-medium text-gray-700">Urgency Level</label>
             <select name="urgency" id="urgency" required value={formData.urgency} onChange={handleChange}
@@ -159,6 +194,7 @@ function PostRequestPage() {
             </select>
           </div>
 
+          {/* Additional Information */}
           <div>
             <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-700">Additional Information (Optional)</label>
             <textarea name="additionalInfo" id="additionalInfo" rows="3" value={formData.additionalInfo} onChange={handleChange}
@@ -167,9 +203,13 @@ function PostRequestPage() {
 
           {/* Submit button */}
           <div>
-            <button type="submit" disabled={loading}
-                    // Updated button classes for primary action (blue)
-                    className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50">
+            <button 
+                type="submit" 
+                // Button is disabled if loading OR if email is not verified (though form is hidden in that case)
+                disabled={loading || (currentUser && !isEmailVerified)} 
+                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={currentUser && !isEmailVerified ? "Please verify your email to post a request." : ""}
+            >
               {loading ? 'Submitting Request...' : 'Post Blood Request'}
             </button>
           </div>

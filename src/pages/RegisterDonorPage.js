@@ -1,36 +1,35 @@
 // src/pages/RegisterDonorPage.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../AuthContext'; // Ensure this is correctly imported
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 
 function RegisterDonorPage() {
-  const { currentUser } = useAuth();
+  // Destructure isEmailVerified from useAuth
+  const { currentUser, isEmailVerified } = useAuth(); 
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     fullName: '',
-    // University specific fields
-    universityId: '',        // NEW
-    universityRole: '',      // NEW (e.g., 'student', 'faculty', 'staff')
-    department: '',          // NEW
-    // Existing fields
+    universityId: '',
+    universityRole: '',
+    department: '',
     bloodGroup: '',
     contactNumber: '',
     isAvailable: true,
     lastDonationDate: '',
-    allowContactVisibility: false, 
+    allowContactVisibility: false,
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  // No need for successMessage here as we navigate away on success
 
   const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
-  const universityRoles = [ // NEW: Options for the role dropdown
+  const universityRoles = [
     { value: 'student', label: 'Student' },
     { value: 'faculty', label: 'Faculty (Teacher/Professor)' },
     { value: 'staff', label: 'Staff / Employee' },
-    // { value: 'other', label: 'Other' } // Optional "Other"
   ];
 
   const handleChange = (e) => {
@@ -44,15 +43,21 @@ function RegisterDonorPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
-
+    
     if (!currentUser) {
       setError("You must be logged in to register as a donor.");
-      setLoading(false);
       return;
     }
 
-    // Updated form validation to include new required fields
+    // NEW: Check if email is verified
+    if (!isEmailVerified) {
+      setError("Please verify your email address before registering as a donor. Check your inbox for a verification link.");
+      return;
+    }
+
+    setLoading(true); // Set loading true only after passing initial checks
+
+    // Form validation
     if (!formData.fullName || !formData.universityId || !formData.universityRole || !formData.department || !formData.bloodGroup || !formData.contactNumber) {
       setError("Please fill in all required fields: Full Name, University ID, Role, Department, Blood Group, and Contact Number.");
       setLoading(false);
@@ -69,26 +74,27 @@ function RegisterDonorPage() {
         return;
       }
 
-      // Save donor information to Firestore, including new fields
+      // Save donor information to Firestore
       await addDoc(collection(db, "donors"), {
         userId: currentUser.uid,
         email: currentUser.email, 
         fullName: formData.fullName,
-        universityId: formData.universityId,          // NEW
-        universityRole: formData.universityRole,      // NEW
-        department: formData.department,              // NEW
+        universityId: formData.universityId,
+        universityRole: formData.universityRole,
+        department: formData.department,
         bloodGroup: formData.bloodGroup,
         contactNumber: formData.contactNumber,
         isAvailable: formData.isAvailable,
         lastDonationDate: formData.lastDonationDate,
         allowContactVisibility: formData.allowContactVisibility,
-        isVerified: false,
-        isProfileActive: true,
+        isVerified: false, // Admin verification status
+        isProfileActive: true, // Admin can deactivate profile later
         registeredAt: serverTimestamp(),
       });
 
-      console.log("Donor registered successfully with profile active status!");
-      // Consider adding an on-page success message before redirecting
+      console.log("Donor registered successfully!");
+      // Optionally, show an on-page success message before navigating
+      // For now, directly navigate
       setLoading(false);
       navigate('/dashboard'); 
     } catch (err) {
@@ -98,10 +104,34 @@ function RegisterDonorPage() {
     }
   };
 
+  // If user is logged in but email is not verified, show a message instead of the form
+  // This provides a clearer UX than just disabling the button.
+  if (currentUser && !isEmailVerified) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen-nav bg-gray-100 p-4">
+            <div className="w-full max-w-lg p-8 text-center bg-white rounded-lg shadow-md">
+                <h1 className="text-2xl font-semibold text-red-600 mb-4">Email Verification Required</h1>
+                <p className="text-gray-700 mb-2">
+                    Please verify your email address to register as a donor.
+                </p>
+                <p className="text-gray-600 text-sm">
+                    A verification link was sent to <strong>{currentUser.email}</strong> when you created your account.
+                    If you haven't received it, check your spam folder or use the "Resend Email" option in the banner at the top of the page (if available).
+                </p>
+            </div>
+        </div>
+    );
+  }
+
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen-nav bg-gray-100 p-4">
       <div className="w-full max-w-lg p-8 space-y-6 bg-white rounded-lg shadow-md">
         <h1 className="text-3xl font-bold text-center text-red-600">Register as a Blood Donor</h1>
+        
+        {/* Display error messages */}
+        {error && <p className="p-3 my-2 text-sm text-center text-red-700 bg-red-100 rounded-md">{error}</p>}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Full Name */}
           <div>
@@ -182,13 +212,15 @@ function RegisterDonorPage() {
             </div>
           </div>
 
-          {/* Displays registration error messages */}
-          {error && <p className="text-sm text-red-600 text-center">{error}</p>}
-
           {/* Submit button */}
           <div>
-            <button type="submit" disabled={loading}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50">
+            <button 
+                type="submit" 
+                // Button is disabled if loading OR if email is not verified
+                disabled={loading || (currentUser && !isEmailVerified)} 
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={currentUser && !isEmailVerified ? "Please verify your email to register as a donor." : ""}
+            >
               {loading ? 'Submitting...' : 'Register as Donor'}
             </button>
           </div>
