@@ -10,10 +10,8 @@ function LoginPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation(); // Gets location object for redirection
+  const location = useLocation(); 
 
-  // Determines where to redirect after login.
-  // If 'state.from' exists (passed from a protected route), redirects there, otherwise to dashboard.
   const from = location.state?.from?.pathname || "/dashboard";
 
   const handleLogin = async (e) => {
@@ -25,14 +23,13 @@ function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("User logged in successfully:", userCredential.user);
       setLoading(false);
-      navigate(from, { replace: true }); // Navigate to 'from' location or dashboard
+      navigate(from, { replace: true }); 
     } catch (err) {
       console.error("Error logging in user:", err);
-      // Provides a more user-friendly message for common authentication errors
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError("Invalid email or password. Please try again.");
       } else {
-        setError(err.message); // Shows other Firebase errors
+        setError(err.message); 
       }
       setLoading(false);
     }
@@ -63,9 +60,17 @@ function LoginPage() {
 
           {/* Password input field */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              {/* "Forgot Password?" Link */}
+              <div className="text-sm">
+                <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+                  Forgot your password?
+                </Link>
+              </div>
+            </div>
             <input
               id="password"
               name="password"
@@ -87,7 +92,6 @@ function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              // Updated button classes for primary action (blue)
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
               {loading ? 'Signing In...' : 'Sign In'}

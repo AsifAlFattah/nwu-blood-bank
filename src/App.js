@@ -11,6 +11,7 @@ import EditDonorProfilePage from './pages/EditDonorProfilePage';
 import FindDonorsPage from './pages/FindDonorsPage'; 
 import PostRequestPage from './pages/PostRequestPage';
 import ViewRequestsPage from './pages/ViewRequestsPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import Navbar from './components/Navbar'; 
 import Footer from './components/Footer'; 
 
@@ -65,6 +66,7 @@ function AppContent() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route
             path="/dashboard"
             element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}
