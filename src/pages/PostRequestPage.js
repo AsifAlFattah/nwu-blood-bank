@@ -1,6 +1,6 @@
 // src/pages/PostRequestPage.js
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // Added Link for consistency if needed
+import { useNavigate } from 'react-router-dom'; // Added Link for consistency if needed
 import { useAuth } from '../AuthContext'; // useAuth will provide currentUser and isEmailVerified
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';

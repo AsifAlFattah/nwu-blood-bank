@@ -1,6 +1,6 @@
 // src/pages/RegisterPage.js
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { auth, db } from '../firebase'; // Ensure db is imported
 // Import sendEmailVerification from firebase/auth
 import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
@@ -12,7 +12,7 @@ function RegisterPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState(''); // For success/info messages after registration
-  const navigate = useNavigate(); 
+ //const navigate = useNavigate(); 
 
   const handleRegister = async (e) => {
     e.preventDefault(); 

@@ -1,6 +1,6 @@
 // src/pages/EditDonorProfilePage.js
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // Added Link for consistency if needed
+import { useNavigate } from 'react-router-dom'; // Added Link for consistency if needed
 import { useAuth } from '../AuthContext'; // useAuth will provide currentUser and isEmailVerified
 import { db } from '../firebase';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
