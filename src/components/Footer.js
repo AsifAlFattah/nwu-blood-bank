@@ -12,7 +12,7 @@ function Footer() {
           <span className="block md:inline-block mt-1 md:mt-0"> {/* Stacks on small, inline on medium+ */}
             Developed by{' '}
             <a 
-              href="https://www.facebook.com/asif.alfattah/" 
+              href="https://www.linkedin.com/in/asif-al-fattah/" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="font-semibold text-red-600 hover:text-red-700 hover:underline"
