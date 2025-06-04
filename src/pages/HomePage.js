@@ -1,72 +1,153 @@
 // src/pages/HomePage.js
 import React from 'react';
-import { Link } from 'react-router-dom'; // Used for Call to Action buttons/links
-import { useAuth } from '../AuthContext';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../AuthContext'; // Assuming AuthContext.js is in src/
+
+// Simple animated arrow icon for Call to Action buttons
+const ArrowRightIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 group-hover:translate-x-1.5 transition-transform duration-200 ease-in-out" viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+  </svg>
+);
+
+// SVG Icons for Social Links
+const WebIcon = () => <span className="text-xl">🌐</span>;
+const FacebookIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"> {/* Adjusted size to h-5 w-5 */}
+        <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z" />
+    </svg>
+);
+const LinkedInIcon = () => ( 
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"> {/* Adjusted size to h-5 w-5 */}
+        <path d="M4.98 3.5c0 1.381-1.11 2.5-2.48 2.5s-2.48-1.119-2.48-2.5c0-1.38 1.11-2.5 2.48-2.5s2.48 1.12 2.48 2.5zm.02 4.5h-5v16h5v-16zm7.982 0h-4.968v16h4.969v-8.399c0-4.67 6.029-4.499 6.029 0v8.399h4.988v-10.131c0-7.88-8.922-7.593-11.018-3.714v-2.155z" />
+    </svg>
+);
 
 function HomePage() {
   const { currentUser } = useAuth();
+
+  const comptronInfo = {
+    name: "Comptron",
+    tagline: "Creativity Assembled",
+    about: "Comptron is the official computer club of North Western University, dedicated to fostering innovation, technical skills, and a vibrant tech community on campus. We are proud to manage and drive the NWU Blood Bank initiative.",
+    logoUrl: "/images/Comptron.png", 
+    website: "https://www.comptron.nwu.ac.bd", 
+    facebook: "https://www.facebook.com/comptron.nwu", 
+    linkedin: "https://www.linkedin.com/company/nwucomptron"
+  };
+
   return (
-    // Main container for the page, designed to center content and fill screen height below navbar
-    <div className="flex flex-col items-center justify-center text-center p-4 md:p-8 min-h-screen-nav">
+    <div className="min-h-screen-nav bg-gray-100">
       
-      <main className="max-w-3xl w-full"> {/* Ensures content doesn't get too wide on large screens */}
-        <h1 className="text-4xl md:text-5xl font-bold text-red-700 mb-6">
-          Welcome to NWU Blood Bank
-        </h1>
-        <p className="text-lg md:text-xl text-gray-700 mb-10"> {/* Increased bottom margin */}
-          Connecting compassionate donors with those in urgent need within our university community. Your contribution can save a life.
-        </p>
-        
-        {currentUser ? (
-          // Content shown when a user is logged in
-          <div className="space-y-4">
-            <p className="text-xl text-green-700">
-              You are logged in as: <span className="font-semibold">{currentUser.email}</span>
-            </p>
-            <p className="text-md text-gray-600">
-              Use the navigation bar to find donors, post a request, or visit your dashboard to manage your profile and activities.
-            </p>
-            <Link 
-              to="/dashboard"
-              className="mt-6 inline-block bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:shadow-lg transition duration-150 ease-in-out"
-            >
-              Go to Dashboard
-            </Link>
-          </div>
-        ) : (
-          // Content shown when no user is logged in (guest view)
-          <div className="space-y-6">
-            <p className="text-md text-gray-600 mb-8">
-              Join our community of lifesavers. Register to become a donor or log in to find help.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-              <Link 
-                to="/register"
-                // Using blue for primary registration call to action, consistent with other primary buttons
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition duration-150 ease-in-out"
-              >
-                Register Now
-              </Link>
-              <Link 
-                to="/login"
-                // Secondary action style for login
-                className="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition duration-150 ease-in-out"
-              >
-                Login
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {/* A section with more information about blood donation */}
-        <div className="mt-16 border-t border-gray-300 pt-10"> {/* Added border-gray-300 */}
-          <h2 className="text-2xl md:text-3xl font-semibold text-gray-800 mb-4">The Gift of Life</h2>
-          <p className="text-gray-600 max-w-xl mx-auto leading-relaxed">
-            Every blood donation is a vital contribution to our community's health. Your simple act of kindness can bring hope and healing to patients in critical need, directly impacting lives and fostering a spirit of support within NWU.
+      {/* Hero Section */}
+      <section className="bg-white text-gray-800 py-20 md:py-28 px-4 text-center">
+        {/* ... Hero content remains the same ... */}
+        <div className="container mx-auto max-w-4xl">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 leading-tight tracking-tight text-red-700">
+            Give the Gift of Life.
+            <br className="hidden sm:block" /> Donate Blood Today.
+          </h1>
+          <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+            Join the NWU Blood Bank community. Your contribution empowers us to save lives and support those in need within our university.
           </p>
+          <div className="space-y-4 sm:space-y-0 sm:space-x-6 flex flex-col sm:flex-row justify-center items-center">
+            {currentUser ? (
+              <>
+                <Link 
+                  to="/find-donors"
+                  className="group w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 border border-transparent text-base font-semibold rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors duration-300 ease-in-out shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                >
+                  Find a Donor <ArrowRightIcon />
+                </Link>
+                <Link 
+                  to="/post-request"
+                  className="group w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 border-2 border-red-600 text-base font-semibold rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors duration-300 ease-in-out shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                >
+                  Post a Request <ArrowRightIcon />
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link 
+                  to="/register" 
+                  className="group w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 border border-transparent text-base font-semibold rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors duration-300 ease-in-out shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                >
+                  Become a Donor <ArrowRightIcon />
+                </Link>
+                <Link 
+                  to="/login"
+                  className="group w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 border-2 border-gray-300 text-base font-semibold rounded-lg text-gray-700 hover:bg-gray-100 hover:border-gray-400 transition-colors duration-300 ease-in-out shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                >
+                  Login / Need Blood <ArrowRightIcon />
+                </Link>
+              </>
+            )}
+          </div>
         </div>
-      </main>
+      </section>
 
+      {/* Managed by Comptron Section */}
+      <section className="py-16 md:py-20 bg-gray-50 px-4">
+        <div className="container mx-auto max-w-3xl text-center">
+            <div className="mb-8">
+                <img 
+                    src={process.env.PUBLIC_URL + comptronInfo.logoUrl} 
+                    alt="Comptron Logo" 
+                    className="h-20 md:h-24 w-auto mx-auto mb-4" 
+                    onError={(e) => { 
+                        e.currentTarget.style.display = 'none'; 
+                        const placeholder = document.createElement('p');
+                        placeholder.textContent = '[Comptron Logo Unavailable]';
+                        placeholder.className = 'text-gray-500 mb-4';
+                        if(e.currentTarget.parentNode) { 
+                           e.currentTarget.parentNode.insertBefore(placeholder, e.currentTarget.nextSibling);
+                        }
+                    }}
+                />
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+                    An Initiative By <span className="text-red-600">{comptronInfo.name}</span>
+                </h2>
+                {/* <p className="text-lg font-semibold text-indigo-600 mb-4">{comptronInfo.tagline}</p> */}
+            </div>
+            
+            <p className="text-md text-gray-700 mb-8 leading-relaxed max-w-xl mx-auto">
+                {comptronInfo.about}
+            </p>
+            
+            {/* Comptron Links with icons inline with text */}
+            <div className="flex justify-center items-center space-x-6">
+              {comptronInfo.website && comptronInfo.website !== '#' && (
+                <a href={comptronInfo.website} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-red-600 transition-colors duration-200 inline-flex items-center" aria-label="Comptron Website">
+                  <WebIcon /> <span className="ml-2 text-m">Website</span> {/* Adjusted text size and margin */}
+                </a>
+              )}
+              {comptronInfo.facebook && comptronInfo.facebook !== '#' && (
+                <a href={comptronInfo.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-red-600 transition-colors duration-200 inline-flex items-center" aria-label="Comptron Facebook">
+                  <FacebookIcon /> <span className="ml-2 text-m">Facebook</span> {/* Adjusted text size and margin */}
+                </a>
+              )}
+              {comptronInfo.linkedin && comptronInfo.linkedin !== '#' && (
+                <a href={comptronInfo.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-red-600 transition-colors duration-200 inline-flex items-center" aria-label="Comptron LinkedIn">
+                  <LinkedInIcon /> <span className="ml-2 text-m">LinkedIn</span> {/* Adjusted text size and margin */}
+                </a>
+              )}
+            </div>
+
+            {/* Final Call to Action section */}
+            <div className="mt-16">
+                {!currentUser && ( 
+                <Link 
+                    to="/register" 
+                    // Changed button color to red
+                    className="group inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors duration-300 ease-in-out shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                >
+                    Join Our Lifesaving Community
+                    <ArrowRightIcon />
+                </Link>
+                )}
+            </div>
+        </div>
+      </section>
     </div>
   );
 }
