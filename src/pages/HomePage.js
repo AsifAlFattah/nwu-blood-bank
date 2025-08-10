@@ -29,7 +29,7 @@ function HomePage() {
   const comptronInfo = {
     name: "Comptron",
     tagline: "Creativity Assembled",
-    about: "Comptron is the official computer club of North Western University, dedicated to fostering innovation, technical skills, and a vibrant tech community on campus. We are proud to manage and drive the NWU Blood Bank initiative.",
+    about: "Comptron is the official computer club of North Western University, dedicated to fostering innovation, technical skills, and a vibrant tech community on campus.",
     logoUrl: "/images/Comptron.png", 
     website: "https://www.comptron.nwu.ac.bd", 
     facebook: "https://www.facebook.com/comptron.nwu", 
@@ -105,7 +105,7 @@ function HomePage() {
                     }}
                 />
                 <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
-                    An Initiative By <span className="text-red-600">{comptronInfo.name}</span>
+                    Managed By <span className="text-red-600">{comptronInfo.name}</span>
                 </h2>
                 {/* <p className="text-lg font-semibold text-indigo-600 mb-4">{comptronInfo.tagline}</p> */}
             </div>
