@@ -1,38 +1,46 @@
 // src/pages/FindDonorsPage.js
 import React, { useState } from 'react';
 import { db } from '../firebase';
-// Ensure Timestamp is imported from firebase/firestore
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore'; 
+import { collection, query, where, getDocs } from 'firebase/firestore'; 
+import { useAuth } from '../AuthContext'; // Import useAuth to get the current user
 import LoadingSpinner from '../components/LoadingSpinner';
 
+// Helper function to calculate age from a date of birth string (YYYY-MM-DD)
+const calculateAge = (dateOfBirth) => {
+  if (!dateOfBirth) return null;
+  const birthDate = new Date(dateOfBirth);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDifference = today.getMonth() - birthDate.getMonth();
+  if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+// Helper function to format date strings for display
+const formatDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
+    } catch (e) {
+        return dateString;
+    }
+};
+
 function FindDonorsPage() {
+  const { currentUser } = useAuth(); // Get the currently logged-in user
   const [searchBloodGroup, setSearchBloodGroup] = useState('');
   const [donors, setDonors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searched, setSearched] = useState(false);
 
-  const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+  const adminContactInfo = "01XXXXXXXXX"; // ** IMPORTANT: Replace with actual admin/Comptron contact number **
 
-  // Helper function to format dates, handles Firestore Timestamps and date strings
-  const formatDate = (timestamp) => {
-    if (timestamp instanceof Timestamp) { // Check if it's a Firestore Timestamp object
-      return timestamp.toDate().toLocaleDateString('en-US', { 
-        year: 'numeric', month: 'long', day: 'numeric' 
-      });
-    }
-    // If it's already a string date (as saved from input type="date")
-    if (typeof timestamp === 'string' && timestamp.length > 0) {
-        try {
-            return new Date(timestamp).toLocaleDateString('en-US', { 
-              year: 'numeric', month: 'long', day: 'numeric' 
-            });
-        } catch (e) {
-            return timestamp; // Return original string if it's not a valid date string
-        }
-    }
-    return ''; // Return empty or 'N/A' if no valid date
-  };
+  const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -49,23 +57,28 @@ function FindDonorsPage() {
 
     try {
       const donorsRef = collection(db, "donors");
+      // Query remains the same, we will filter the results in the app
       const q = query(
         donorsRef,
         where("bloodGroup", "==", searchBloodGroup),
-        where("isAvailable", "==", true),
-        where("isProfileActive", "==", true) // Ensure only active profiles are searched
+        where("isProfileActive", "==", true)
       );
 
       const querySnapshot = await getDocs(q);
-      const foundDonors = [];
+      let foundDonors = [];
       querySnapshot.forEach((doc) => {
         foundDonors.push({ id: doc.id, ...doc.data() });
       });
 
+      // Filter out the currently logged-in user from the search results
+      if (currentUser) {
+        foundDonors = foundDonors.filter(donor => donor.userId !== currentUser.uid);
+      }
+
       setDonors(foundDonors);
     } catch (err) {
       console.error("Error fetching donors: ", err);
-      setError("Failed to fetch donors. Please try again. (Ensure Firestore indexes are created if prompted in console)");
+      setError("Failed to fetch donors. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -102,44 +115,59 @@ function FindDonorsPage() {
         {error && <p className="text-sm text-red-600 text-center mb-4">{error}</p>}
         {loading && <LoadingSpinner message="Searching for donors..." />} 
         {!loading && searched && donors.length === 0 && !error && searchBloodGroup && (
-          <p className="text-center text-gray-600">No available donors found for blood group: {searchBloodGroup}.</p>
+          <div className="text-center py-8">
+            <p className="text-gray-600">No other donors found for blood group: {searchBloodGroup}.</p>
+            <p className="text-sm text-gray-500 mt-2">Please check again later or post a blood request.</p>
+          </div>
         )}
 
         {!loading && donors.length > 0 && (
           <div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Available Donors ({searchBloodGroup})</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Donor Search Results ({searchBloodGroup})</h2>
             <ul className="space-y-4">
-              {donors.map(donor => (
-                <li key={donor.id} className="p-4 bg-gray-50 rounded-lg shadow hover:shadow-lg transition-shadow">
-                  <h3 className="font-semibold text-lg text-red-700">{donor.fullName}</h3>
-                  <div className="text-sm text-gray-700 mt-1 space-y-0.5">
-                    <p>Blood Group: <span className="font-bold">{donor.bloodGroup}</span></p>
-                    {donor.universityId && (
-                        <p>University ID: {donor.universityId}</p>
-                    )}
-                    <p>
-                      Admin Verified: 
-                      <span className={`ml-1 px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${donor.isVerified ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'}`}>
-                        {donor.isVerified === undefined ? "N/A" : donor.isVerified ? "Yes" : "No"}
-                      </span>
-                    </p>
-                    {donor.allowContactVisibility ? (
-                      <p>Contact: {donor.contactNumber}</p>
-                    ) : (
-                      <p className="italic text-gray-500">Contact information is private.</p>
-                    )}
-                    <p>
-                      Current Availability: 
-                      <span className={`ml-1 px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${donor.isAvailable ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {donor.isAvailable ? "Available" : "Not Available"}
-                      </span>
-                    </p>
-                    {donor.lastDonationDate && (
-                      <p className="text-xs text-gray-500">Last Donated: {formatDate(donor.lastDonationDate)}</p>
-                    )}
-                  </div>
-                </li>
-              ))}
+              {donors.map(donor => {
+                const age = calculateAge(donor.dateOfBirth);
+                return (
+                  <li key={donor.id} className="p-4 bg-gray-50 rounded-lg shadow hover:shadow-lg transition-shadow">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold text-lg text-red-700">{donor.fullName}</h3>
+                        <p className="text-xs text-gray-500">ID: {donor.universityId || 'N/A'}</p>
+                      </div>
+                      <div className="flex flex-col items-end space-y-1">
+                        <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${donor.isVerified ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-700'}`}>
+                          {donor.isVerified ? "Verified" : "Not Verified"}
+                        </span>
+                        <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${donor.isAvailable ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                          {donor.isAvailable ? "Available" : "Unavailable"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-700 mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
+                      <p><strong>Blood Group:</strong> <span className="font-bold">{donor.bloodGroup}</span></p>
+                      {age && <p><strong>Age:</strong> {age}</p>}
+                      {donor.gender && <p><strong>Gender:</strong> {donor.gender}</p>}
+                      {donor.department && <p><strong>Dept/Position:</strong> {donor.department}</p>}
+                      {donor.lastDonationDate && (
+                        <p className="col-span-2 text-xs text-gray-500 mt-1">
+                          <strong>Last Donated:</strong> {formatDate(donor.lastDonationDate)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      {donor.allowContactVisibility ? (
+                        <p className="text-sm"><strong>Contact:</strong> {donor.contactNumber}</p>
+                      ) : (
+                        <p className="text-sm italic text-gray-600">
+                          Contact info is private. To connect, please reach out to an admin at 
+                          <strong className="text-red-600 not-italic"> {adminContactInfo} </strong> 
+                          and provide the donor's name and ID.
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
