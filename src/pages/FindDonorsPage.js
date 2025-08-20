@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { db } from '../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore'; 
-import { useAuth } from '../AuthContext'; // Import useAuth to get the current user
+import { useAuth } from '../AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 // Helper function to calculate age from a date of birth string (YYYY-MM-DD)
@@ -31,7 +31,7 @@ const formatDate = (dateString) => {
 };
 
 function FindDonorsPage() {
-  const { currentUser } = useAuth(); // Get the currently logged-in user
+  const { currentUser } = useAuth();
   const [searchBloodGroup, setSearchBloodGroup] = useState('');
   const [donors, setDonors] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -57,7 +57,6 @@ function FindDonorsPage() {
 
     try {
       const donorsRef = collection(db, "donors");
-      // Query remains the same, we will filter the results in the app
       const q = query(
         donorsRef,
         where("bloodGroup", "==", searchBloodGroup),
@@ -70,7 +69,6 @@ function FindDonorsPage() {
         foundDonors.push({ id: doc.id, ...doc.data() });
       });
 
-      // Filter out the currently logged-in user from the search results
       if (currentUser) {
         foundDonors = foundDonors.filter(donor => donor.userId !== currentUser.uid);
       }
@@ -156,7 +154,13 @@ function FindDonorsPage() {
                     </div>
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       {donor.allowContactVisibility ? (
-                        <p className="text-sm"><strong>Contact:</strong> {donor.contactNumber}</p>
+                        <p className="text-sm">
+                          <strong>Contact:</strong>
+                          {/* MODIFIED: Made the contact number a clickable link */}
+                          <a href={`tel:${donor.contactNumber}`} className="ml-1 text-blue-600 hover:underline">
+                            {donor.contactNumber}
+                          </a>
+                        </p>
                       ) : (
                         <p className="text-sm italic text-gray-600">
                           Contact info is private. To connect, please reach out to an admin at 
